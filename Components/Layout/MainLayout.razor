@@ -1,13 +1,43 @@
 @inherits LayoutComponentBase
 
-<div class="page">
-    <main>
+<div class="dotmaple-layout">
+    <header class="dotmaple-topbar">
+        <div class="topbar-upper">
+            <div class="logo-area">
+                <img src="favicon.png" width="24" height="24" />
+                <span>DotMaple</span>
+            </div>
+
+            <div class="search-bar">
+                <i class="bi bi-search" style="color: #666;"></i>
+                <input type="text" placeholder="검색" />
+            </div>
+
+            <div class="user-area">
+                <div style="width: 32px; height: 32px; background: #333; border-radius: 50%;"></div>
+                <div style="font-size: 0.9rem; color: #888;">NEXON ID CONNECT</div>
+                <i class="bi bi-three-dots-vertical" style="color: #666; cursor: pointer;"></i>
+            </div>
+        </div>
+
+        <nav class="nav-tabs">
+            <NavLink class="nav-tab" href="net-worth" ActiveClass="active">순자산 한눈에</NavLink>
+            <NavLink class="nav-tab" href="" Match="NavLinkMatch.All" ActiveClass="active">메소마켓</NavLink>
+            <NavLink class="nav-tab" href="cube" ActiveClass="active">큐브</NavLink>
+            <NavLink class="nav-tab" href="starforce" ActiveClass="active">스타포스</NavLink>
+            <NavLink class="nav-tab" href="ledger" ActiveClass="active">가계부</NavLink>
+        </nav>
+    </header>
+
+    <main class="dotmaple-main-content">
         @Body
     </main>
 </div>
 
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
-</div>
+<style>
+    .dotmaple-main-content {
+        padding: 40px;
+        flex: 1;
+        overflow-y: auto;
+    }
+</style>

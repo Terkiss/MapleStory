@@ -1,78 +1,148 @@
 :root {
-    --bg-dark: #0d0d0d;
-    --card-bg: #1a1a1a;
-    --maple-orange: #f29132;
-    --maple-red: #ff4b4b;
-    --maple-green: #00e676;
-    --text-main: #ffffff;
-    --text-sub: #888888;
-    --glass-effect: rgba(255, 255, 255, 0.03);
+    --bg-black: #0f0f0f;
+    --bg-card: #1a1a1a;
+    --bg-card-hover: #222222;
+    --maple-gold: #f29132;
+    --maple-gold-gradient: linear-gradient(135deg, #f29132 0%, #b86d1f 100%);
+    --maple-gold-dim: rgba(242, 145, 50, 0.1);
+    --text-white: #ffffff;
+    --text-gray: #a0a0a0;
+    --text-dark: #666666;
+    --maple-green: #4CAF50;
+    --maple-red: #FF5252;
+    --border-color: rgba(255, 255, 255, 0.08);
 }
 
 body {
-    background-color: var(--bg-dark);
-    color: var(--text-main);
+    background-color: var(--bg-black);
+    color: var(--text-white);
     font-family: 'Pretendard', -apple-system, sans-serif;
     margin: 0;
-    overflow: hidden;
-    height: 100vh;
+    overflow-x: hidden;
 }
 
-.dotmaple-container {
+/* Scrollbar Style */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-black); }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #444; }
+
+/* Layout Containers */
+.dotmaple-layout {
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    padding: 20px;
-    box-sizing: border-box;
-    gap: 20px;
+    min-height: 100vh;
 }
 
-/* 상단: 초대형 시세 영역 */
-.hero-price-section {
-    flex: 0 0 150px;
+/* Top Navigation Bar */
+.dotmaple-topbar {
+    height: 110px;
+    background: var(--bg-black);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.topbar-upper {
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
-    padding: 0 40px;
+    align-items: center;
+    margin-bottom: 15px;
 }
 
-.price-main {
-    font-size: 5rem;
-    font-weight: 800;
-    letter-spacing: -2px;
-    line-height: 1;
-}
-
-.price-unit {
+.logo-area {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     font-size: 1.5rem;
-    color: var(--text-sub);
-    margin-left: 10px;
+    font-weight: 800;
+    color: var(--maple-gold);
+    cursor: pointer;
 }
 
-.price-change-large {
-    font-size: 2rem;
-    font-weight: 600;
-    margin-bottom: 10px;
+.search-bar {
+    background: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 8px 15px;
+    width: 400px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-/* 중앙: 메인 차트 영역 */
-.main-chart-section {
-    flex: 1;
-    background: var(--card-bg);
-    border-radius: 24px;
-    border: 1px solid rgba(255,255,255,0.05);
-    position: relative;
-    overflow: hidden;
+.search-bar input {
+    background: transparent;
+    border: none;
+    color: white;
+    width: 100%;
+    outline: none;
+    font-size: 0.9rem;
 }
 
-/* 하단: 미니맵 영역 */
-.minimap-section {
-    flex: 0 0 80px;
-    background: var(--glass-effect);
+.user-area {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.nav-tabs {
+    display: flex;
+    gap: 30px;
+}
+
+.nav-tab {
+    color: var(--text-gray);
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 500;
+    padding-bottom: 5px;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.nav-tab.active {
+    color: var(--maple-gold);
+    border-bottom: 2px solid var(--maple-gold);
+}
+
+/* Cards & Components */
+.dm-card {
+    background: var(--bg-card);
     border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.05);
+    border: 1px solid var(--border-color);
+    padding: 20px;
 }
 
-/* 캔들 컬러 수정 */
-.candle-up { fill: var(--maple-green); stroke: var(--maple-green); }
-.candle-down { fill: var(--maple-red); stroke: var(--maple-red); }
+.dm-card-gold {
+    background: var(--maple-gold-gradient);
+    color: black;
+}
+
+.dm-button-gold {
+    background: var(--maple-gold);
+    color: black;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.dm-badge-up {
+    background: rgba(76, 175, 80, 0.1);
+    color: var(--maple-green);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+}
+
+.dm-badge-down {
+    background: rgba(255, 82, 82, 0.1);
+    color: var(--maple-red);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+}

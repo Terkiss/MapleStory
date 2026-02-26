@@ -79,4 +79,5 @@
 /Users/yujeonghun/Project/MapleStory_Market_Graph/MapleStoryMarketGraph/obj/Debug/net9.0/MapleStoryMarketGraph.pdb
 /Users/yujeonghun/Project/MapleStory_Market_Graph/MapleStoryMarketGraph/obj/Debug/net9.0/MapleStoryMarketGraph.genruntimeconfig.cache
 /Users/yujeonghun/Project/MapleStory_Market_Graph/MapleStoryMarketGraph/obj/Debug/net9.0/ref/MapleStoryMarketGraph.dll
-/Users/yujeonghun/Project/MapleStory_Market_Graph/MapleStoryMarketGraph/obj/Debug/net9.0/compressed/l4rsf5xnli-k0kmpk6suq.gz
+/Users/yujeonghun/Project/MapleStory_Market_Graph/MapleStoryMarketGraph/obj/Debug/net9.0/MapleStoryMarketGraph.sourcelink.json
+/Users/yujeonghun/Project/MapleStory_Market_Graph/MapleStoryMarketGraph/obj/Debug/net9.0/compressed/l4rsf5xnli-9tjkjzfz1s.gz

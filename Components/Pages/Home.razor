@@ -5,126 +5,114 @@
 @using MapleStoryMarketGraph.Components.Charts
 @inject MarketDataService MarketData
 
-<div class="dotmaple-container">
-    <!-- 1. Top Section: Hero Price -->
-    <section class="hero-price-section">
-        <div>
-            <div style="color: var(--maple-orange); font-size: 1.2rem; font-weight: 600; margin-bottom: 8px;">
-                @_selectedTimeframe MESO MARKET PRICE
+<div class="meso-market-container">
+    <!-- Top Stats Section -->
+    <div class="stats-row d-flex gap-4 mb-5">
+        <!-- Current Price Card (Gold Gradient) -->
+        <div class="dm-card dm-card-gold flex-fill" style="min-width: 320px; position: relative;">
+            <div style="font-size: 0.9rem; opacity: 0.8; margin-bottom: 10px;">@_unit 당 현재 가격</div>
+            <div style="font-size: 2.5rem; font-weight: 800; display: flex; align-items: baseline; gap: 8px;">
+                @_currentPrice.ToString("N0") <span style="font-size: 1.2rem; font-weight: 500;">Meso</span>
             </div>
-            <div class="price-main">
-                @_currentPrice.ToString("N0")<span class="price-unit">MESO</span>
+            <div style="position: absolute; top: 20px; right: 20px; width: 36px; height: 36px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                <i class="bi bi-arrow-up" style="color: white; font-size: 1.2rem;"></i>
             </div>
         </div>
-        <div class="text-end">
-            <div class="price-change-large @(_priceChange >= 0 ? "price-up" : "price-down")"
-                 style="color: @(_priceChange >= 0 ? "var(--maple-green)" : "var(--maple-red)")">
+
+        <!-- 24h Change Card -->
+        <div class="dm-card flex-fill" style="min-width: 320px;">
+            <div style="font-size: 0.9rem; color: var(--text-gray); margin-bottom: 10px;">24시간 변동</div>
+            <div style="font-size: 2.5rem; font-weight: 800; color: @(_priceChange >= 0 ? "var(--maple-green)" : "var(--maple-red)")">
                 @(_priceChange >= 0 ? "▲" : "▼") @Math.Abs(_priceChange).ToString("P2")
             </div>
-            <div class="timeframe-selector d-flex gap-2">
+        </div>
+
+        <!-- Unit Selector Card -->
+        <div class="dm-card flex-fill d-flex align-items-center justify-content-center gap-3">
+            @foreach (var u in new[] { "1억", "10억", "100억" })
+            {
+                <button class="unit-btn @(u == _unit ? "active" : "")" @onclick="() => ChangeUnit(u)">@u</button>
+            }
+        </div>
+    </div>
+
+    <!-- Chart Header -->
+    <div class="chart-header d-flex justify-content-between align-items-end mb-4">
+        <div>
+            <div style="font-size: 1.1rem; color: var(--maple-gold); font-weight: 700; margin-bottom: 5px;">@_selectedTimeframe MESO MARKET PRICE</div>
+            <div style="font-size: 4.5rem; font-weight: 900; line-height: 1;">@_currentPrice.ToString("N0") <span style="font-size: 1.5rem; color: #444; font-weight: 500; margin-left: 10px;">MESO</span></div>
+        </div>
+        
+        <div class="d-flex flex-column align-items-end gap-3">
+            <div style="font-size: 2.2rem; font-weight: 700; color: @(_priceChange >= 0 ? "var(--maple-green)" : "var(--maple-red)")">
+                @(_priceChange >= 0 ? "▼" : "▲") @Math.Abs(_priceChange).ToString("P2")
+            </div>
+            <div class="timeframe-buttons d-flex gap-1" style="background: #111; padding: 4px; border-radius: 25px;">
                 @foreach (var tf in _timeframes)
                 {
-                    <button class="btn-glass @(tf == _selectedTimeframe ? "active" : "")"
-                            style="border-radius: 20px; padding: 4px 16px; border: 1px solid @(tf == _selectedTimeframe ? "var(--maple-orange)" : "rgba(255,255,255,0.1)"); background: @(tf == _selectedTimeframe ? "rgba(242,145,50,0.1)" : "transparent"); color: @(tf == _selectedTimeframe ? "var(--maple-orange)" : "var(--text-sub)");"
-                            @onclick="() => ChangeTimeframe(tf)">
-                        @tf
-                    </button>
+                    <button class="tf-btn @(tf == _selectedTimeframe ? "active" : "")" @onclick="() => ChangeTimeframe(tf)">@tf</button>
                 }
             </div>
         </div>
-    </section>
+    </div>
 
-    <!-- 2. Middle Section: Wide Chart -->
-    <section class="main-chart-section">
+    <!-- Main Chart Section -->
+    <div class="main-chart-wrapper" style="height: 650px; background: #0a0a0a; border-radius: 16px; border: 1px solid var(--border-color); overflow: hidden;">
         @if (_df != null)
         {
-            <CandleChart Data="@_df" Width="1600" Height="800" />
+            <CandleChart Data="@_df" Unit="@_unit" Width="1600" Height="650" />
         }
-    </section>
-
-    <!-- 3. Bottom Section: Timeline Minimap / Multi-Timeframe Status -->
-    <section class="minimap-section d-flex align-items-center px-4 gap-4 overflow-auto">
-        @foreach (var tf in _timeframes)
-        {
-            var tfData = MarketData.GetDataFrame(tf);
-            var isSelected = tf == _selectedTimeframe;
-            <div class="mini-status-card @(isSelected ? "selected" : "")" @onclick="() => ChangeTimeframe(tf)"
-                 style="flex: 0 0 140px; cursor: pointer; padding: 10px; border-radius: 8px; border: 1px solid @(isSelected ? "var(--maple-orange)" : "transparent"); background: @(isSelected ? "rgba(242,145,50,0.05)" : "transparent"); transition: all 0.2s;">
-                <div style="font-size: 0.7rem; color: var(--text-sub); margin-bottom: 4px;">@tf FLOW</div>
-                <div style="font-weight: 700; font-size: 0.9rem;">
-                    @if (tfData != null && tfData.RowCount > 0)
-                    {
-                        @Convert.ToDouble(tfData[tfData.RowCount - 1, "1억Close"]).ToString("N0")
-                    }
-                </div>
-                <div style="height: 20px; width: 100%; margin-top: 5px;">
-                    <!-- Simple Sparkline using SVG -->
-                    <svg width="100" height="20" preserveAspectRatio="none">
-                        <path d="M0 10 L 20 15 L 40 5 L 60 12 L 80 8 L 100 10" fill="none"
-                              stroke="@(isSelected ? "var(--maple-orange)" : "var(--text-sub)")" stroke-width="1" />
-                    </svg>
-                </div>
-            </div>
-        }
-    </section>
+    </div>
 </div>
 
 <style>
-    .mini-status-card:hover {
-        background: rgba(255, 255, 255, 0.05) !important;
+    .unit-btn {
+        background: transparent; border: 1px solid #333; color: #666;
+        padding: 10px 35px; border-radius: 10px; font-weight: 700; transition: all 0.2s;
+        font-size: 1rem;
     }
-
-    .mini-status-card.selected {
-        box-shadow: 0 0 15px rgba(242, 145, 50, 0.1);
+    .unit-btn.active {
+        background: var(--maple-gold-dim); border-color: var(--maple-gold); color: var(--maple-gold);
+    }
+    .tf-btn {
+        background: transparent; border: none; color: #555; font-size: 0.95rem;
+        padding: 6px 16px; cursor: pointer; border-radius: 20px; font-weight: 600;
+        transition: all 0.2s;
+    }
+    .tf-btn.active {
+        background: #222; color: var(--maple-gold); box-shadow: 0 2px 10px rgba(0,0,0,0.3);
     }
 </style>
 
 @code {
-    private string[] _timeframes; // UI에 표시할 타임프레임 버튼 목록
-    private string _selectedTimeframe; // 현재 선택된 타임프레임 (예: "5분")
-    private DataFrame _df; // 현재 화면에 표시 중인 엔진의 데이터 객체
-    private double _currentPrice; // 최신 종가 (Hero Price 영역에 표시)
-    private double _priceChange = 0.0245; // 변동률 (전체 기간 대비 등락폭)
+    private string[] _timeframes = Array.Empty<string>();
+    private string _selectedTimeframe = "5분";
+    private string _unit = "1억";
+    private DataFrame? _df;
+    private double _currentPrice;
+    private double _priceChange;
 
     protected override void OnInitialized()
     {
-        // 서비스로부터 사용 가능한 타임프레임 목록을 가져옵니다.
         _timeframes = MarketData.GetAvailableTimeframes();
-        _selectedTimeframe = "5분"; // 초기값 설정
         UpdateData();
     }
 
-    /// <summary>
-    /// 타임프레임 버튼 클릭 시 호출됩니다.
-    /// </summary>
-    private void ChangeTimeframe(string tf)
-    {
-        _selectedTimeframe = tf;
-        UpdateData(); // 엔진에서 해당 데이터를 다시 가져와 화면을 갱신합니다.
-    }
+    private void ChangeTimeframe(string tf) { _selectedTimeframe = tf; UpdateData(); }
+    private void ChangeUnit(string unit) { _unit = unit; UpdateData(); }
 
-    /// <summary>
-    /// 엔진으로부터 최신 데이터를 불러와 상태 변수들을 업데이트합니다.
-    /// </summary>
     private void UpdateData()
     {
-        // MarketDataService에서 인메모리 DataFrame을 즉시 가져옵니다.
         _df = MarketData.GetDataFrame(_selectedTimeframe);
-        
         if (_df != null && _df.RowCount > 0)
         {
-            // 마지막 행(최신 데이터)의 인덱스 확인
-            var lastRowIdx = _df.RowCount - 1;
-            
-            // "1억Close" 컬럼의 최신 값을 가져와 시세로 설정합니다.
-            var currentVal = _df[lastRowIdx, "1억Close"];
-            if (currentVal != null)
+            var lastIdx = _df.RowCount - 1;
+            var priceObj = _df[lastIdx, $"{_unit}Close"];
+            if (priceObj != null)
             {
-                _currentPrice = Convert.ToDouble(currentVal);
-                 
-                // 변동률 계산: 해당 타임프레임 데이터의 첫 지점 대비 현재 지점의 변화율
-                var firstVal = Convert.ToDouble(_df[0, "1억Close"]);
-                _priceChange = (_currentPrice - firstVal) / firstVal;
+                _currentPrice = Convert.ToDouble(priceObj);
+                var firstPrice = Convert.ToDouble(_df[0, $"{_unit}Close"]);
+                _priceChange = (_currentPrice - firstPrice) / firstPrice;
             }
         }
     }
