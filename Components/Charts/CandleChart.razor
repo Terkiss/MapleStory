@@ -3,8 +3,8 @@
 
 <div class="candle-chart-wrapper" style="width: 100%; height: 100%; display: flex; flex-direction: column;">
     <!-- Chart Area -->
-    <div class="candle-chart-container" 
-         style="flex: 1; position: relative; background: #1a1a1a; cursor: crosshair; user-select: none; overflow: hidden;" 
+    <div class="candle-chart-container"
+         style="flex: 1; position: relative; background: #1a1a1a; cursor: crosshair; user-select: none; overflow: hidden;"
          @onmousemove="OnMouseMove" @onmouseleave="OnMouseLeave" @onwheel="OnWheel" @onwheel:preventDefault="true">
         
         <svg width="100%" height="100%" viewBox="0 0 @Width @Height" preserveAspectRatio="none">
@@ -14,119 +14,131 @@
                 {
                     var y = _marginTop + (_chartHeight * i / 5);
                     var price = _maxPrice - (_priceRange * i / 5);
-                                    <line x1="@_marginLeft" y1="@y" x2="@(_Width - _marginRight)" y2="@y" stroke="rgba(255,255,255,0.05)" stroke-width="1" />
-                                    <svg:text x="@(_Width - _marginRight + 8)" y="@(y + 5)" fill="#cccccc" font-size="14" font-weight="500">@price.ToString("N0")</svg:text>
+                    <line x1="@_marginLeft" y1="@y" x2="@(_Width - _marginRight)" y2="@y" stroke="rgba(255,255,255,0.05)"
+                          stroke-width="1" />
+                    <svg:text x="@(_Width - _marginRight + 8)" y="@(y + 5)" fill="#cccccc" font-size="14" font-weight="500">
+                        @price.ToString("N0")</svg:text>
                                     
-                                    var xPos = _marginLeft + (_chartWidth * i / 5);                    <line x1="@xPos" y1="@_marginTop" x2="@xPos" y2="@(_Height - _marginBottom)" stroke="rgba(255,255,255,0.03)" stroke-width="1" />
-                }
-            </g>
-
-            <!-- 2. Price Histogram (Vertical Graph) -->
-            <g class="price-histogram">
-                @if (_priceDistribution != null)
-                {
-                    var maxDist = _priceDistribution.Values.DefaultIfEmpty(1).Max();
-                    var binCount = _priceDistribution.Count;
-                    var binHeight = _chartHeight / binCount;
-                    int j = 0;
-                    @foreach (var entry in _priceDistribution.OrderByDescending(k => k.Key))
-                    {
-                        var barWidth = (entry.Value / (double)maxDist) * 120; 
-                        var yPos = _marginTop + (j * binHeight);
-                        <rect x="@(_Width - _marginRight - barWidth)" y="@yPos" width="@barWidth" height="@(binHeight - 1)" 
-                              fill="var(--maple-orange)" fill-opacity="0.1" />
-                        j++;
+                        var xPos = _marginLeft + (_chartWidth * i / 5);
+                        <line x1="@xPos" y1="@_marginTop" x2="@xPos" y2="@(_Height - _marginBottom)"
+                              stroke="rgba(255,255,255,0.03)" stroke-width="1" />
                     }
-                }
-            </g>
+                </g>
 
-            <!-- 3. Moving Averages (MA Lines) -->
-            <g class="ma-lines">
-                @RenderMaLine("1억MA20", "#ffd700")  <!-- Gold -->
-                @RenderMaLine("1억MA60", "#e040fb")  <!-- Purple -->
-                @RenderMaLine("1억MA120", "#00e5ff") <!-- Cyan -->
-            </g>
+                <!-- 2. Price Histogram (Vertical Graph) -->
+                <g class="price-histogram">
+                    @if (_priceDistribution != null)
+                    {
+                        var maxDist = _priceDistribution.Values.DefaultIfEmpty(1).Max();
+                        var binCount = _priceDistribution.Count;
+                        var binHeight = _chartHeight / binCount;
+                        int j = 0;
+                        @foreach (var entry in _priceDistribution.OrderByDescending(k => k.Key))
+                        {
+                            var barWidth = (entry.Value / (double)maxDist) * 120;
+                            var yPos = _marginTop + (j * binHeight);
+                            <rect x="@(_Width - _marginRight - barWidth)" y="@yPos" width="@barWidth" height="@(binHeight - 1)"
+                                  fill="var(--maple-orange)" fill-opacity="0.1" />
+                            j++;
+                        }
+                    }
+                </g>
 
-            <!-- 4. Candles -->
-            <g class="candles">
-                @for (int i = 0; i < _visibleCount; i++)
+                <!-- 3. Moving Averages (MA Lines) -->
+                <g class="ma-lines">
+                    @RenderMaLine("1억MA20", "#ffd700") <!-- Gold -->
+                    @RenderMaLine("1억MA60", "#e040fb") <!-- Purple -->
+                    @RenderMaLine("1억MA120", "#00e5ff") <!-- Cyan -->
+                </g>
+
+                <!-- 4. Candles -->
+                <g class="candles">
+                    @for (int i = 0; i < _visibleCount; i++)
+                    {
+                        var rowIdx = _startIndex + i;
+                        if (rowIdx < 0 || rowIdx >= Data.RowCount) continue;
+
+                        var open = Convert.ToDouble(Data[rowIdx, "1억Open"]);
+                        var high = Convert.ToDouble(Data[rowIdx, "1억High"]);
+                        var low = Convert.ToDouble(Data[rowIdx, "1억Low"]);
+                        var close = Convert.ToDouble(Data[rowIdx, "1억Close"]);
+
+                        var x = _marginLeft + (i * _candleWidth);
+                        var candleBodyWidth = _candleWidth * 0.7;
+
+                        var yHigh = PriceToY(high);
+                        var yLow = PriceToY(low);
+                        var yOpen = PriceToY(open);
+                        var yClose = PriceToY(close);
+
+                        var bodyY = Math.Min(yOpen, yClose);
+                        var bodyHeight = Math.Max(1, Math.Abs(yOpen - yClose));
+                        var color = close >= open ? "var(--maple-green)" : "var(--maple-red)";
+
+                        <line x1="@(x + candleBodyWidth / 2)" y1="@yHigh" x2="@(x + candleBodyWidth / 2)" y2="@yLow" stroke="@color"
+                              stroke-width="1" />
+                        <rect x="@x" y="@bodyY" width="@candleBodyWidth" height="@bodyHeight" fill="@color"
+                              fill-opacity="0.8" />
+                    }
+                </g>
+
+                <!-- 5. Legend for MA -->
+                <g class="ma-legend" transform="translate(30, 30)">
+                    <rect x="-5" y="-15" width="220" height="25" fill="rgba(0,0,0,0.5)" rx="4" />
+                    <line x1="0" y1="0" x2="15" y2="0" stroke="#ffd700" stroke-width="2" />
+                    <svg:text x="20" y="4" fill="#ffd700" font-size="10">MA20</svg:text>
+                
+                    <line x1="70" y1="0" x2="85" y2="0" stroke="#e040fb" stroke-width="2" />
+                    <svg:text x="90" y="4" fill="#e040fb" font-size="10">MA60</svg:text>
+                
+                    <line x1="140" y1="0" x2="155" y2="0" stroke="#00e5ff" stroke-width="2" />
+                    <svg:text x="160" y="4" fill="#00e5ff" font-size="10">MA120</svg:text>
+                </g>
+
+                <!-- 6. Crosshair -->
+                @if (_hoverIndex >= 0)
                 {
-                    var rowIdx = _startIndex + i;
-                    if (rowIdx < 0 || rowIdx >= Data.RowCount) continue;
-
-                    var open = Convert.ToDouble(Data[rowIdx, "1억Open"]);
-                    var high = Convert.ToDouble(Data[rowIdx, "1억High"]);
-                    var low = Convert.ToDouble(Data[rowIdx, "1억Low"]);
-                    var close = Convert.ToDouble(Data[rowIdx, "1억Close"]);
-
-                    var x = _marginLeft + (i * _candleWidth);
-                    var candleBodyWidth = _candleWidth * 0.7;
-
-                    var yHigh = PriceToY(high);
-                    var yLow = PriceToY(low);
-                    var yOpen = PriceToY(open);
-                    var yClose = PriceToY(close);
-
-                    var bodyY = Math.Min(yOpen, yClose);
-                    var bodyHeight = Math.Max(1, Math.Abs(yOpen - yClose));
-                    var color = close >= open ? "var(--maple-green)" : "var(--maple-red)";
-
-                    <line x1="@(x + candleBodyWidth/2)" y1="@yHigh" x2="@(x + candleBodyWidth/2)" y2="@yLow" stroke="@color" stroke-width="1" />
-                    <rect x="@x" y="@bodyY" width="@candleBodyWidth" height="@bodyHeight" fill="@color" fill-opacity="0.8" />
+                    var hX = _marginLeft + (_hoverIndex * _candleWidth) + (_candleWidth * 0.35);
+                    <line x1="@hX" y1="@_marginTop" x2="@hX" y2="@(_Height - _marginBottom)" stroke="rgba(255,255,255,0.3)"
+                          stroke-dasharray="4" />
                 }
-            </g>
+            </svg>
 
-            <!-- 5. Legend for MA -->
-            <g class="ma-legend" transform="translate(30, 30)">
-                <rect x="-5" y="-15" width="220" height="25" fill="rgba(0,0,0,0.5)" rx="4" />
-                <line x1="0" y1="0" x2="15" y2="0" stroke="#ffd700" stroke-width="2" />
-                <svg:text x="20" y="4" fill="#ffd700" font-size="10">MA20</svg:text>
-                
-                <line x1="70" y1="0" x2="85" y2="0" stroke="#e040fb" stroke-width="2" />
-                <svg:text x="90" y="4" fill="#e040fb" font-size="10">MA60</svg:text>
-                
-                <line x1="140" y1="0" x2="155" y2="0" stroke="#00e5ff" stroke-width="2" />
-                <svg:text x="160" y="4" fill="#00e5ff" font-size="10">MA120</svg:text>
-            </g>
-
-            <!-- 6. Crosshair -->
-            @if (_hoverIndex >= 0)
+            <!-- Tooltip -->
+            @if (_hoverIndex >= 0 && _hoverData != null)
             {
-                var hX = _marginLeft + (_hoverIndex * _candleWidth) + (_candleWidth * 0.35);
-                <line x1="@hX" y1="@_marginTop" x2="@hX" y2="@(_Height - _marginBottom)" stroke="rgba(255,255,255,0.3)" stroke-dasharray="4" />
-            }
-        </svg>
-
-        <!-- Tooltip -->
-        @if (_hoverIndex >= 0 && _hoverData != null)
-        {
-            <div class="chart-tooltip" style="position: absolute; left: @(_tooltipX)px; top: 20px; background: rgba(0,0,0,0.85); border: 1px solid var(--maple-orange); padding: 10px; border-radius: 4px; pointer-events: none; z-index: 100;">
-                <div style="color: var(--maple-orange); font-weight: bold; font-size: 12px;">@_hoverData.Date</div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 11px; margin-top: 5px;">
-                    <span style="color: #888;">Open:</span> <span>@_hoverData.Open.ToString("N0")</span>
-                    <span style="color: #888;">High:</span> <span style="color: var(--maple-green)">@_hoverData.High.ToString("N0")</span>
-                    <span style="color: #888;">Low:</span> <span style="color: var(--maple-red)">@_hoverData.Low.ToString("N0")</span>
-                    <span style="color: #888;">Close:</span> <strong>@_hoverData.Close.ToString("N0")</strong>
+                <div class="chart-tooltip"
+                     style="position: absolute; left: @(_tooltipX)px; top: 20px; background: rgba(0,0,0,0.85); border: 1px solid var(--maple-orange); padding: 10px; border-radius: 4px; pointer-events: none; z-index: 100;">
+                    <div style="color: var(--maple-orange); font-weight: bold; font-size: 12px;">@_hoverData.Date</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 11px; margin-top: 5px;">
+                        <span style="color: #888;">Open:</span> <span>@_hoverData.Open.ToString("N0")</span>
+                        <span style="color: #888;">High:</span> <span
+                        style="color: var(--maple-green)">@_hoverData.High.ToString("N0")</span>
+                        <span style="color: #888;">Low:</span> <span
+                        style="color: var(--maple-red)">@_hoverData.Low.ToString("N0")</span>
+                        <span style="color: #888;">Close:</span> <strong>@_hoverData.Close.ToString("N0")</strong>
+                    </div>
                 </div>
-            </div>
-        }
-    </div>
+            }
+        </div>
 
-    <!-- Scrollbar Area -->
-    <div class="chart-scrollbar-container" style="height: 30px; background: #0d0d0d; padding: 5px 120px 5px 20px; display: flex; align-items: center;">
-        <input type="range" style="width: 100%; accent-color: var(--maple-orange); background: transparent; height: 4px; cursor: pointer;" 
-               min="0" max="@(Math.Max(0, Data.RowCount - _visibleCount))" 
-               @bind="_startIndex" @bind:event="oninput" @onchange="OnScrollChange" />
+        <!-- Scrollbar Area -->
+        <div class="chart-scrollbar-container"
+             style="height: 30px; background: #0d0d0d; padding: 5px 120px 5px 20px; display: flex; align-items: center;">
+            <input type="range"
+                   style="width: 100%; accent-color: var(--maple-orange); background: transparent; height: 4px; cursor: pointer;"
+                   min="0" max="@(Math.Max(0, Data.RowCount - _visibleCount))" @bind="_startIndex" @bind:event="oninput"
+                   @onchange="OnScrollChange" />
+        </div>
     </div>
-</div>
 
 @code {
     // ------------------------------------------------------------
     // [파라미터 및 기본 설정]
     // ------------------------------------------------------------
     [Parameter] public DataFrame Data { get; set; } = default!; // 엔진에서 넘어온 OHLC 데이터
-    [Parameter] public double Width { get; set; } = 1600;      // 차트 전체 너비
-    [Parameter] public double Height { get; set; } = 800;      // 차트 전체 높이
+    [Parameter] public double Width { get; set; } = 1600; // 차트 전체 너비
+    [Parameter] public double Height { get; set; } = 800; // 차트 전체 높이
 
     private double _Width => Width;
     private double _Height => Height;
@@ -144,21 +156,21 @@
     // ------------------------------------------------------------
     // [뷰포트 상태 (줌 및 스크롤)]
     // ------------------------------------------------------------
-    private int _startIndex = 0;    // 전체 데이터 중 현재 화면에 보여줄 시작 인덱스
+    private int _startIndex = 0; // 전체 데이터 중 현재 화면에 보여줄 시작 인덱스
     private int _visibleCount = 100; // 화면에 표시할 캔들의 개수 (줌 단계에 따라 변함)
     private double _candleWidth => _chartWidth / Math.Max(1, _visibleCount); // 캔들 하나의 너비 자동 계산
     
-    private double _minPrice;       // 현재 화면 내 최저 가격
-    private double _maxPrice;       // 현재 화면 내 최고 가격
-    private double _priceRange;     // 최고가와 최저가의 차이 (Y축 스케일링용)
+    private double _minPrice; // 현재 화면 내 최저 가격
+    private double _maxPrice; // 현재 화면 내 최고 가격
+    private double _priceRange; // 최고가와 최저가의 차이 (Y축 스케일링용)
     private Dictionary<double, int> _priceDistribution = new(); // 세로 매물대 계산용 데이터
 
     // ------------------------------------------------------------
     // [상호작용 상태 (마우스 호버)]
     // ------------------------------------------------------------
-    private int _hoverIndex = -1;    // 마우스가 위치한 현재 캔들의 인덱스
-    private double _tooltipX = 0;    // 툴팁 박스의 X 좌표
-    private CandleData? _hoverData;  // 툴팁에 표시할 상세 데이터 객체
+    private int _hoverIndex = -1; // 마우스가 위치한 현재 캔들의 인덱스
+    private double _tooltipX = 0; // 툴팁 박스의 X 좌표
+    private CandleData? _hoverData; // 툴팁에 표시할 상세 데이터 객체
 
     protected override void OnParametersSet()
     {
@@ -243,7 +255,11 @@
             // 가격을 Y 좌표로 변환
             var y = PriceToY(Convert.ToDouble(val));
 
-            if (first) { points = $"{x.ToString(CultureInfo.InvariantCulture)},{y.ToString(CultureInfo.InvariantCulture)}"; first = false; }
+            if (first)
+            {
+                points = $"{x.ToString(CultureInfo.InvariantCulture)},{y.ToString(CultureInfo.InvariantCulture)}"; first =
+false;
+            }
             else { points += $" {x.ToString(CultureInfo.InvariantCulture)},{y.ToString(CultureInfo.InvariantCulture)}"; }
         }
 
@@ -333,12 +349,13 @@
             if (rowIdx >= 0 && rowIdx < Data.RowCount)
             {
                 // 툴팁 데이터 객체 생성
-                _hoverData = new CandleData {
-                    Date = Data[rowIdx, "1억Date"].ToString(),
-                    Open = Convert.ToDouble(Data[rowIdx, "1억Open"]),
-                    High = Convert.ToDouble(Data[rowIdx, "1억High"]),
-                    Low = Convert.ToDouble(Data[rowIdx, "1억Low"]),
-                    Close = Convert.ToDouble(Data[rowIdx, "1억Close"])
+                _hoverData = new CandleData
+                {
+                    Date = Data?[rowIdx, "1억Date"]?.ToString() ?? "",
+                    Open = Convert.ToDouble(Data?[rowIdx, "1억Open"] ?? 0),
+                    High = Convert.ToDouble(Data?[rowIdx, "1억High"] ?? 0),
+                    Low = Convert.ToDouble(Data?[rowIdx, "1억Low"] ?? 0),
+                    Close = Convert.ToDouble(Data?[rowIdx, "1억Close"] ?? 0)
                 };
                 
                 // 툴팁이 화면 오른쪽을 벗어나지 않게 위치 보정

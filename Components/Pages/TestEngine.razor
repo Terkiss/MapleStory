@@ -52,9 +52,9 @@ else
 }
 
 @code {
-    private string[] _timeframes;
-    private string _selectedTimeframe;
-    private DataFrame _df;
+    private string[] _timeframes = Array.Empty<string>();
+    private string _selectedTimeframe = string.Empty;
+    private DataFrame? _df;
 
     protected override void OnInitialized()
     {
@@ -65,7 +65,7 @@ else
 
     private void OnTimeframeChanged(ChangeEventArgs e)
     {
-        _selectedTimeframe = e.Value.ToString();
+        _selectedTimeframe = e.Value?.ToString() ?? string.Empty;
         UpdateData();
     }
 
