@@ -1,0 +1,78 @@
+:root {
+    --bg-dark: #0d0d0d;
+    --card-bg: #1a1a1a;
+    --maple-orange: #f29132;
+    --maple-red: #ff4b4b;
+    --maple-green: #00e676;
+    --text-main: #ffffff;
+    --text-sub: #888888;
+    --glass-effect: rgba(255, 255, 255, 0.03);
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Pretendard', -apple-system, sans-serif;
+    margin: 0;
+    overflow: hidden;
+    height: 100vh;
+}
+
+.dotmaple-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
+    gap: 20px;
+}
+
+/* 상단: 초대형 시세 영역 */
+.hero-price-section {
+    flex: 0 0 150px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 0 40px;
+}
+
+.price-main {
+    font-size: 5rem;
+    font-weight: 800;
+    letter-spacing: -2px;
+    line-height: 1;
+}
+
+.price-unit {
+    font-size: 1.5rem;
+    color: var(--text-sub);
+    margin-left: 10px;
+}
+
+.price-change-large {
+    font-size: 2rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+/* 중앙: 메인 차트 영역 */
+.main-chart-section {
+    flex: 1;
+    background: var(--card-bg);
+    border-radius: 24px;
+    border: 1px solid rgba(255,255,255,0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+/* 하단: 미니맵 영역 */
+.minimap-section {
+    flex: 0 0 80px;
+    background: var(--glass-effect);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+/* 캔들 컬러 수정 */
+.candle-up { fill: var(--maple-green); stroke: var(--maple-green); }
+.candle-down { fill: var(--maple-red); stroke: var(--maple-red); }

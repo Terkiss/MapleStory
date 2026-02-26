@@ -1,0 +1,76 @@
+@page "/test-engine"
+@rendermode InteractiveServer
+@using MapleStoryMarketGraph.Services
+@using TeruTeruPandas.Core
+@inject MarketDataService MarketData
+
+<h3>Market Data Engine Test</h3>
+
+@if (_timeframes == null)
+{
+    <p>Loading data...</p>
+}
+else
+{
+    <div>
+        <select @onchange="OnTimeframeChanged">
+            @foreach (var tf in _timeframes)
+            {
+                <option value="@tf">@tf</option>
+            }
+        </select>
+    </div>
+
+    @if (_df != null)
+    {
+        <p>Total Rows: @_df.RowCount</p>
+        <p>Columns: @string.Join(", ", _df.Columns)</p>
+        
+        <table class="table">
+            <thead>
+                <tr>
+                    @foreach (var col in _df.Columns)
+                    {
+                        <th>@col</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @* Show first 10 rows *@
+                @for (int i = 0; i < Math.Min(10, _df.RowCount); i++)
+                {
+                    <tr>
+                        @foreach (var col in _df.Columns)
+                        {
+                            <td>@_df[i, col]</td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    private string[] _timeframes;
+    private string _selectedTimeframe;
+    private DataFrame _df;
+
+    protected override void OnInitialized()
+    {
+        _timeframes = MarketData.GetAvailableTimeframes();
+        _selectedTimeframe = _timeframes[0];
+        UpdateData();
+    }
+
+    private void OnTimeframeChanged(ChangeEventArgs e)
+    {
+        _selectedTimeframe = e.Value.ToString();
+        UpdateData();
+    }
+
+    private void UpdateData()
+    {
+        _df = MarketData.GetDataFrame(_selectedTimeframe);
+    }
+}
