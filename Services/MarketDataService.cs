@@ -12,18 +12,18 @@ public class MarketDataService
 {
     // TeruTeruPandas의 핵심 객체: 여러 DataFrame(테이블)을 관리하는 컨테이너
     private readonly DataUniverse _universe = new();
-    
+
     // 데이터가 위치한 디렉토리 경로
     private readonly string _dataDir;
-    
+
     // 지원하는 타임프레임(시간봉) 리스트
     private readonly string[] _timeframes = { "5분", "10분", "30분", "1시간", "3시간", "6시간", "12시간", "24시간" };
 
-    public MarketDataService(IHostEnvironment env)
+    public MarketDataService()
     {
-        // 프로젝트 루트 기준의 data 폴더 경로를 설정합니다.
-        _dataDir = Path.Combine(env.ContentRootPath, "..", "data");
-        
+        // 실행 파일 경로(BaseDirectory) 하위의 data 폴더 경로를 설정합니다.
+        _dataDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data");
+
         // 서비스 생성 시 모든 데이터를 즉시 메모리에 로딩합니다.
         InitializeData();
     }
@@ -40,7 +40,7 @@ public class MarketDataService
             {
                 // 엔진의 CsvReader를 사용하여 CSV -> DataFrame 변환
                 var df = CsvReader.ReadCsv(filePath);
-                
+
                 // DataUniverse에 테이블 이름(봉 단위)으로 저장
                 _universe.AddTable(tf, df);
                 Console.WriteLine($"[MarketDataService] 데이터 로드 완료: {tf} ({df.RowCount} 행)");

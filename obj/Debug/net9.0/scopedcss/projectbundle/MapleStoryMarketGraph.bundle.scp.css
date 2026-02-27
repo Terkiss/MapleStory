@@ -1,4 +1,4 @@
-/* _content/MapleStoryMarketGraph/Components/Layout/MainLayout.razor.rz.scp.css */
+/* /Components/Layout/MainLayout.razor.rz.scp.css */
 .page[b-odkokgj4mh] {
     position: relative;
     display: flex;
@@ -97,7 +97,7 @@ main[b-odkokgj4mh] {
         right: 0.75rem;
         top: 0.5rem;
     }
-/* _content/MapleStoryMarketGraph/Components/Layout/NavMenu.razor.rz.scp.css */
+/* /Components/Layout/NavMenu.razor.rz.scp.css */
 .navbar-toggler[b-i7jysg92ly] {
     appearance: none;
     cursor: pointer;
