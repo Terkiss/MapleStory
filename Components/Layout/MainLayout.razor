@@ -1,11 +1,15 @@
 @inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
 
 <div class="dotmaple-layout">
     <header class="dotmaple-topbar">
         <div class="topbar-upper">
-            <div class="logo-area">
-                <img src="favicon.png" width="24" height="24" />
-                <span>DotMaple</span>
+            <div class="logo-area" @onclick='() => NavigationManager.NavigateTo("/")'>
+                <div
+                    style="background: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid var(--maple-gold);">
+                    <img src="/images/logo.png" style="width: 110%; height: 110%; object-fit: cover;" />
+                </div>
+                <span style="margin-left: 8px;">DotMaple</span>
             </div>
 
             <div class="search-bar">

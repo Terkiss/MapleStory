@@ -21,8 +21,21 @@ public class MarketDataService
 
     public MarketDataService()
     {
-        // 실행 파일 경로(BaseDirectory) 하위의 data 폴더 경로를 설정합니다.
-        _dataDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data");
+        // 프로젝트 루트 기준 data 폴더 경로를 설정합니다 (참조 방식)
+        // bin/Debug/net9.0/ 에서 4단계 위가 workspace root이며, 그곳의 data 폴더를 참조함
+        _dataDir = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../data"));
+
+        // 만약 위 경로에 데이터가 없다면 대체 경로 확인 (Project root 기준)
+        if (!Directory.Exists(_dataDir))
+        {
+            _dataDir = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../data"));
+        }
+
+        // 최종적으로 bin 폴더 내부도 확인
+        if (!Directory.Exists(_dataDir))
+        {
+            _dataDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data");
+        }
 
         // 서비스 생성 시 모든 데이터를 즉시 메모리에 로딩합니다.
         InitializeData();
