@@ -1,116 +1,284 @@
 @page "/ledger"
 @rendermode InteractiveServer
+@using MapleStoryMarketGraph.Services
+@using MapleStoryMarketGraph.Models
+@using TeruTeruPandas.Core
+@inject AccountBookService AccountService
+@inject IJSRuntime JS
 
 <div class="ledger-container">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 style="font-weight: 800; margin: 0;">가계부</h2>
+        <h2 style="font-weight: 800; margin: 0;">가계부 <span style="font-size: 0.9rem; font-weight: 400; color: #666; margin-left: 10px;">User: @_currentUserId</span></h2>
         <div class="d-flex gap-2">
+            @if (!AccountService.IsInitialized)
+            {
+                <div class="badge bg-danger d-flex align-items-center px-3" style="font-size: 0.8rem; border-radius: 20px;">
+                    <i class="bi bi-exclamation-triangle me-2"></i> 구글 시트 연결 오류
+                </div>
+            }
             <div class="dm-card d-flex align-items-center py-2 px-3" style="font-size: 0.9rem; color: #888;">
-                <i class="bi bi-calendar3 me-2"></i> 2026-02-27 <i class="bi bi-chevron-down ms-2"></i>
+                <i class="bi bi-calendar3 me-2"></i> @DateTime.Now.ToString("yyyy-MM-dd") <i class="bi bi-chevron-down ms-2"></i>
             </div>
-            <button class="dm-button-gold">+ 거래 추가</button>
+            <button class="dm-button-gold" @onclick="ToggleAddForm" disabled="@_isSaving">@(_showAddForm ? "닫기" : "+ 거래 추가")</button>
         </div>
     </div>
 
-    <!-- Summary Charts Section -->
-    <div class="row g-4 mb-4">
-        <!-- Left Stats -->
-        <div class="col-md-3">
-            <div class="dm-card dm-card-gold mb-4" style="height: 140px; position: relative;">
-                <div style="font-size: 0.9rem; opacity: 0.8;">이번 달 수입</div>
-                <div style="font-size: 1.8rem; font-weight: 800; margin-top: 10px;">105,000,000 <span style="font-size: 0.9rem;">MESO</span></div>
-                <span class="dm-badge-up" style="position: absolute; top: 15px; right: 20px; background: rgba(255,255,255,0.2); color: white;">UP</span>
+    @if (_showAddForm)
+    {
+        <!-- [1] 거래 등록 폼 (최종 레이아웃) -->
+        <div class="dm-card mb-4 p-4" style="background: #111; border-color: var(--maple-gold-dim);">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 style="color: var(--maple-gold); margin: 0; font-weight: 700;">새 거래 등록</h5>
+                @if (!string.IsNullOrEmpty(_errorMessage))
+                {
+                    <span class="text-danger small fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i> @_errorMessage</span>
+                }
             </div>
-            <div class="dm-card" style="height: 140px; position: relative;">
-                <div style="font-size: 0.9rem; color: #888;">이번 달 지출</div>
-                <div style="font-size: 1.8rem; font-weight: 800; margin-top: 10px;">98,500,000 <span style="font-size: 0.9rem;">MESO</span></div>
-                <span class="dm-badge-up" style="position: absolute; top: 15px; right: 20px;">UP</span>
+            
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <label class="form-label text-gray small">거래 제목 (필수)</label>
+                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="_newEntry.Title" placeholder="예: 보스 결정석 판매" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-gray small">거래 날짜</label>
+                    <input type="date" class="form-control bg-dark text-white border-secondary" @bind="_newEntry.Timestamp" @bind:format="yyyy-MM-dd" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-gray small">유형</label>
+                    <select class="form-select bg-dark text-white border-secondary" @bind="_newEntry.Type">
+                        <option value="수입">수입</option>
+                        <option value="지출">지출</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-gray small">카테고리</label>
+                    <select class="form-select bg-dark text-white border-secondary" @bind="_newEntry.Category">
+                        @foreach (var cat in _categories) { <option value="@cat">@cat</option> }
+                    </select>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label text-gray small">금액 (필수)</label>
+                    <input type="number" class="form-control bg-dark text-white border-secondary" @bind="_newEntry.Amount" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-gray small">단위 (UNIT)</label>
+                    <select class="form-select bg-dark text-white border-secondary" @bind="_newEntry.Unit">
+                        <option value="Meso">Meso</option>
+                        <option value="Point">Point</option>
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label text-gray small">메모 (선택)</label>
+                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="_newEntry.Memo" placeholder="거래 상세 메모" />
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="dm-button-gold w-100" @onclick="SaveEntry" disabled="@(_isSaving || !AccountService.IsInitialized)">
+                        @if (_isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span> <span>저장 중...</span>
+                        }
+                        else
+                        {
+                            <span>등록하기</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- [2] Summary Charts Section -->
+    <div class="row g-4 mb-4">
+        <!-- [3] 대시보드 통계 카드 -->
+        <div class="col-md-3 d-flex flex-column gap-3">
+            <div class="dm-card @(_totalBalance >= 0 ? "dm-card-gold" : "")" style="height: 93px; position: relative; border-color: @(_totalBalance < 0 ? "var(--maple-red)" : "transparent")">
+                <div style="font-size: 0.75rem; opacity: 0.8;">현재 잔액 (Net Balance)</div>
+                <div style="font-size: 1.4rem; font-weight: 800; color: @(_totalBalance < 0 ? "var(--maple-red)" : "inherit")">
+                    @_totalBalance.ToString("N0") <span style="font-size: 0.8rem; font-weight: 400;">MESO</span>
+                </div>
+                @if (_totalBalance < 0) { <span class="badge bg-danger position-absolute" style="top: 10px; right: 10px;">LOSS</span> }
+            </div>
+            <div class="dm-card" style="height: 93px; background: rgba(76, 175, 80, 0.05); border-color: rgba(76, 175, 80, 0.15);">
+                <div style="font-size: 0.75rem; color: var(--maple-green); opacity: 0.8;">이번 달 총 수입</div>
+                <div style="font-size: 1.4rem; font-weight: 800;">@_totalIncome.ToString("N0")</div>
+            </div>
+            <div class="dm-card" style="height: 93px; background: rgba(255, 82, 82, 0.05); border-color: rgba(255, 82, 82, 0.15);">
+                <div style="font-size: 0.75rem; color: var(--maple-red); opacity: 0.8;">이번 달 총 지출</div>
+                <div style="font-size: 1.4rem; font-weight: 800;">@_totalExpense.ToString("N0")</div>
             </div>
         </div>
 
-        <!-- Middle Bar Chart -->
+        <!-- [2] 월별 인터랙티브 차트 (Bar Chart + Tooltip) -->
         <div class="col-md-6">
-            <div class="dm-card" style="height: 304px;">
-                <div style="font-size: 0.9rem; font-weight: 700; margin-bottom: 20px;">일별 수입 vs 지출</div>
-                <div style="height: 200px; display: flex; align-items: flex-end; gap: 15px; padding-left: 20px;">
+            <div class="dm-card" style="height: 304px; position: relative;">
+                <div style="font-size: 0.9rem; font-weight: 700; margin-bottom: 20px;">월별 수입 분포 (Interactive)</div>
+                <div style="height: 200px; display: flex; align-items: flex-end; gap: 15px; padding-left: 20px; padding-right: 10px;">
                     @for (int i = 0; i < 12; i++)
                     {
-                        var h = new[] { 60, 80, 40, 30, 70, 90, 50, 65, 75, 85, 55, 45 }[i];
-                        <div style="flex: 1; background: var(--maple-gold-dim); height: @(h)%; border-radius: 4px 4px 0 0; position: relative;">
-                             <div style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 0.7rem; color: #444;">@(i)월</div>
+                        var idx = i;
+                        var h = _chartData[idx];
+                        var actualVal = _monthlyActuals[idx];
+                        <div style="flex: 1; background: @(h > 0 ? "var(--maple-gold)" : "#222"); height: @(Math.Max(5, h))%; border-radius: 4px 4px 0 0; position: relative; cursor: pointer; transition: all 0.2s;"
+                             @onmouseover="() => _hoverMonthIdx = idx" @onmouseleave="() => _hoverMonthIdx = -1">
+                            <div style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 0.7rem; color: #444;">@(idx + 1)월</div>
+                            
+                            @if (_hoverMonthIdx == idx)
+                            {
+                                <div class="dm-tooltip" style="position: absolute; top: -45px; left: 50%; transform: translateX(-50%); z-index: 10;">
+                                    @(actualVal.ToString("N0")) Meso
+                                </div>
+                            }
                         </div>
                     }
                 </div>
             </div>
         </div>
 
-        <!-- Right Pie Chart -->
+        <!-- [2] 파이 차트 (Interactive Category Pie) -->
         <div class="col-md-3">
-            <div class="dm-card" style="height: 304px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <div style="font-size: 0.9rem; font-weight: 700; width: 100%; text-align: left; margin-bottom: 10px;">지출 카테고리 요약</div>
-                <svg width="160" height="160" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="40" fill="none" stroke="#222" stroke-width="20" />
-                    <circle cx="50" cy="50" r="40" fill="none" stroke="var(--maple-gold)" stroke-width="20" stroke-dasharray="125, 251" stroke-dashoffset="0" />
-                    <circle cx="50" cy="50" r="40" fill="none" stroke="#b86d1f" stroke-width="20" stroke-dasharray="60, 251" stroke-dashoffset="-125" />
+            <div class="dm-card" style="height: 304px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+                <div style="font-size: 0.9rem; font-weight: 700; width: 100%; text-align: left; margin-bottom: 10px;">지출 분석</div>
+                <svg width="150" height="150" viewBox="0 0 100 100" style="cursor: pointer;">
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="#222" stroke-width="18" />
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="var(--maple-gold)" stroke-width="18" 
+                            stroke-dasharray="@(_pieValues[0] * 2.51), 251" stroke-dashoffset="0" transform="rotate(-90 50 50)" 
+                            @onmouseover="() => _hoverPieIdx = 0" @onmouseleave="() => _hoverPieIdx = -1" />
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="#b86d1f" stroke-width="18" 
+                            stroke-dasharray="@(_pieValues[1] * 2.51), 251" stroke-dashoffset="@(-_pieValues[0] * 2.51)" transform="rotate(-90 50 50)" 
+                            @onmouseover="() => _hoverPieIdx = 1" @onmouseleave="() => _hoverPieIdx = -1" />
                 </svg>
+                
+                @if (_hoverPieIdx >= 0)
+                {
+                    <div class="dm-tooltip" style="position: absolute; top: 140px; white-space: nowrap;">
+                        @(_hoverPieIdx == 0 ? $"강화/아이템: {_itemActual.ToString("N0")}" : $"기타: {(_totalExpense - _itemActual).ToString("N0")}")
+                    </div>
+                }
+
+                <div class="mt-4 small w-100">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span><i class="bi bi-circle-fill me-2" style="color: var(--maple-gold)"></i>강화/아이템</span> 
+                        <span style="font-weight: 700;">@_pieValues[0]%</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span><i class="bi bi-circle-fill me-2" style="color: #b86d1f"></i>사냥/기타</span> 
+                        <span style="font-weight: 700;">@_pieValues[1]%</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Recent Transactions -->
+    <!-- [5] Recent Transactions -->
     <h4 style="font-weight: 700; margin-bottom: 20px;">최근 거래 내역</h4>
-    <div class="dm-card p-0 overflow-hidden">
-        <table class="dm-table w-100">
-            <thead>
-                <tr>
-                    <th>일간</th>
-                    <th>거래 세역</th>
-                    <th>너위</th>
-                    <th class="text-end">수입 안탁</th>
-                    <th class="text-center">UNIT</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in _transactions)
-                {
-                    <tr>
-                        <td style="color: #888;">@item.Date</td>
-                        <td>
-                            @item.Title 
-                            <span class="@(item.IsUp ? "dm-badge-up" : "dm-badge-down") ms-2">UP</span>
-                        </td>
-                        <td>@(item.IsIncome ? "수입" : "지출")</td>
-                        <td class="text-end" style="font-weight: 700;">
-                            @item.Amount.ToString("N0") <span style="font-size: 0.7rem; color: #666; font-weight: 400;">MESO</span>
-                        </td>
-                        <td class="text-center">
-                            <div style="display: inline-flex; align-items: center; background: #222; padding: 2px 10px; border-radius: 20px; font-size: 0.8rem;">
-                                <img src="favicon.png" width="14" class="me-2" /> @item.Unit
-                            </div>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+    @if (_isLoading) { <div class="text-center py-5"><i class="bi bi-arrow-repeat spin"></i> 데이터를 불러오는 중...</div> }
+    else
+    {
+        <div class="dm-card p-0 overflow-hidden">
+            <table class="dm-table w-100">
+                <thead>
+                    <tr><th>일간</th><th>거래 내역</th><th>메모</th><th>유형</th><th class="text-end">금액</th><th class="text-center">UNIT</th></tr>
+                </thead>
+                <tbody>
+                    @if (_transactions.Count == 0) { <tr><td colspan="6" class="text-center py-5 text-gray">등록된 거래 내역이 없습니다.</td></tr> }
+                    @foreach (var item in _transactions)
+                    {
+                        <tr>
+                            <td style="color: #888;">@item.Timestamp.ToString("yyyy-MM-dd")</td>
+                            <td>@item.Title <span class="@(item.IsUp ? "dm-badge-up" : "dm-badge-down") ms-2">@(item.IsUp ? "UP" : "DOWN")</span></td>
+                            <td style="color: #666; font-size: 0.85rem;">@item.Memo</td>
+                            <td>@item.Type</td>
+                            <td class="text-end" style="font-weight: 700; color: @(item.Type == "수입" ? "var(--maple-green)" : "white")">
+                                @(item.Type == "수입" ? "+" : "-") @item.Amount.ToString("N0")
+                            </td>
+                            <td class="text-center"><div class="unit-badge"><img src="favicon.png" width="14" class="me-2" /> @item.Unit</div></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
 </div>
 
 <style>
     .dm-table { border-collapse: collapse; }
-    .dm-table th { padding: 15px 20px; color: #444; font-size: 0.8rem; text-transform: uppercase; border-bottom: 1px solid #222; }
+    .dm-table th { padding: 15px 20px; color: #444; font-size: 0.8rem; border-bottom: 1px solid #222; }
     .dm-table td { padding: 18px 20px; border-bottom: 1px solid #1a1a1a; font-size: 0.95rem; }
-    .dm-table tr:last-child td { border-bottom: none; }
+    .unit-badge { display: inline-flex; align-items: center; background: #222; padding: 2px 12px; border-radius: 20px; font-size: 0.8rem; border: 1px solid #333; }
+    .dm-tooltip { background: rgba(0,0,0,0.95); border: 1px solid var(--maple-gold); color: white; padding: 5px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; box-shadow: 0 4px 15px rgba(0,0,0,0.5); pointer-events: none; }
+    .spin { display: inline-block; animation: spin 1s linear infinite; }
+    @@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 </style>
 
 @code {
-    private List<Transaction> _transactions = new()
-    {
-        new("2026-02-27", "경매장 판매", true, true, 2305000, "12.5B"),
-        new("2026-02-26", "스타포스 강화", false, false, 1500000, "12.5B"),
-        new("2026-02-25", "사냥 수익", true, true, 1800000, "12.5B"),
-        new("2026-02-24", "코디 구매", false, false, 3000000, "12.5B"),
-        new("2026-02-23", "젬스톤 판매", true, true, 4500000, "12.5B")
-    };
+    private string _currentUserId = "test-user";
+    private List<AccountBookEntry> _transactions = new();
+    private string[] _categories = { "보스", "사냥", "강화", "아이템", "코디", "기타" };
+    private bool _isLoading = true;
+    private bool _isSaving = false;
+    private string? _errorMessage;
+    private double _totalIncome, _totalExpense, _totalBalance, _itemActual;
+    private double[] _chartData = new double[12];
+    private double[] _monthlyActuals = new double[12];
+    private int[] _pieValues = new int[2];
+    private int _hoverMonthIdx = -1, _hoverPieIdx = -1;
+    private bool _showAddForm = false;
+    private AccountBookEntry _newEntry = new() { UserId = "test-user", Unit = "Meso", Type = "수입", Category = "보스", Timestamp = DateTime.Today };
 
-    private record Transaction(string Date, string Title, bool IsUp, bool IsIncome, double Amount, string Unit);
+    protected override async Task OnInitializedAsync() => await LoadData();
+    private void ToggleAddForm() => _showAddForm = !_showAddForm;
+
+    private async Task LoadData()
+    {
+        _isLoading = true; _errorMessage = null;
+        try {
+            if (!AccountService.IsInitialized) return;
+            _transactions = await AccountService.GetEntriesAsync(_currentUserId);
+            _transactions = _transactions.OrderByDescending(t => t.Timestamp).ToList();
+            var df = await AccountService.GetAsDataFrameAsync(_currentUserId);
+            if (df != null && df.RowCount > 0) CalculateStatistics(df);
+            else { _totalIncome = _totalExpense = _totalBalance = 0; Array.Clear(_chartData, 0, 12); Array.Clear(_monthlyActuals, 0, 12); }
+        } catch (Exception ex) { _errorMessage = $"로드 오류: {ex.Message}"; }
+        finally { _isLoading = false; }
+    }
+
+    private void CalculateStatistics(DataFrame df)
+    {
+        _totalIncome = _totalExpense = _itemActual = 0;
+        Array.Clear(_monthlyActuals, 0, 12);
+        var now = DateTime.Now;
+        for (int i = 0; i < df.RowCount; i++) {
+            var ts = Convert.ToDateTime(df[i, "Timestamp"]);
+            var type = df[i, "Type"]?.ToString();
+            var cat = df[i, "Category"]?.ToString();
+            var amt = Convert.ToDouble(df[i, "Amount"] ?? 0);
+            if (ts.Year == now.Year && ts.Month == now.Month) { if (type == "수입") _totalIncome += amt; else _totalExpense += amt; }
+            if (ts.Year == now.Year && type == "수입") _monthlyActuals[ts.Month - 1] += amt;
+            if (type == "지출" && (cat == "강화" || cat == "아이템")) _itemActual += amt;
+        }
+        _totalBalance = _totalIncome - _totalExpense;
+        double max = _monthlyActuals.Max();
+        for (int i = 0; i < 12; i++) _chartData[i] = max > 0 ? (_monthlyActuals[i] / max * 100) : 0;
+        if (_totalExpense > 0) { _pieValues[0] = (int)(_itemActual / _totalExpense * 100); _pieValues[1] = 100 - _pieValues[0]; }
+        else { _pieValues[0] = 0; _pieValues[1] = 100; }
+    }
+
+    private async Task SaveEntry()
+    {
+        if (string.IsNullOrEmpty(_newEntry.Title) || _newEntry.Amount <= 0) { await JS.InvokeVoidAsync("alert", "제목과 금액을 확인해 주세요."); return; }
+        _isSaving = true;
+        try {
+            var now = DateTime.Now;
+            _newEntry.Timestamp = new DateTime(_newEntry.Timestamp.Year, _newEntry.Timestamp.Month, _newEntry.Timestamp.Day, now.Hour, now.Minute, now.Second);
+            _newEntry.IsUp = _newEntry.Type == "수입";
+            await AccountService.AddEntryAsync(_newEntry);
+            _newEntry = new AccountBookEntry { UserId = _currentUserId, Unit = "Meso", Type = "수입", Category = "보스", Timestamp = DateTime.Today };
+            _showAddForm = false; await LoadData(); await JS.InvokeVoidAsync("alert", "성공적으로 등록되었습니다.");
+        } catch (Exception ex) { await JS.InvokeVoidAsync("alert", $"저장 오류: {ex.Message}"); }
+        finally { _isSaving = false; }
+    }
 }

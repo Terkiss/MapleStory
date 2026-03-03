@@ -8,6 +8,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddSingleton<MarketDataService>();
+builder.Services.AddSingleton<AccountBookService>();
 
 var app = builder.Build();
 

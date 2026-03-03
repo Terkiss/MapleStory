@@ -9,6 +9,7 @@
     <TieredCompilation>true</TieredCompilation>
     <OptimizationPreference Condition="$([MSBuild]::IsOSPlatform('Windows'))">Speed</OptimizationPreference>
   </PropertyGroup>
+
   <ItemGroup>
     <Reference Include="TeruTeruPandas">
       <HintPath>..\dll\TeruTeruPandas.dll</HintPath>
@@ -19,9 +20,16 @@
     <None Update="..\dll\TeruTeruPandas.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="service_account.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="data\**">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Apis.Sheets.v4" Version="1.73.0.4061" />
   </ItemGroup>
 
 </Project>

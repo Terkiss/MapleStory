@@ -5,3 +5,4 @@
 *.lock.json
 .vs/
 .vscode/
+service_account.json
