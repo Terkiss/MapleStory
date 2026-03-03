@@ -1,7 +1,8 @@
 {
   "version": 3,
   "targets": {
-    "net9.0": {}
+    "net9.0": {},
+    "net9.0/linux-x64": {}
   },
   "libraries": {},
   "projectFileDependencyGroups": {
@@ -14,11 +15,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "d:\\Project\\NexonAPI\\MesoMarket\\MapleStory\\MapleStoryMarketGraph.csproj",
+      "projectUniqueName": "D:\\Project\\NexonAPI\\MesoMarket\\MapleStory\\MapleStoryMarketGraph.csproj",
       "projectName": "MapleStoryMarketGraph",
-      "projectPath": "d:\\Project\\NexonAPI\\MesoMarket\\MapleStory\\MapleStoryMarketGraph.csproj",
+      "projectPath": "D:\\Project\\NexonAPI\\MesoMarket\\MapleStory\\MapleStoryMarketGraph.csproj",
       "packagesPath": "C:\\Users\\dl200\\.nuget\\packages\\",
-      "outputPath": "d:\\Project\\NexonAPI\\MesoMarket\\MapleStory\\obj\\",
+      "outputPath": "D:\\Project\\NexonAPI\\MesoMarket\\MapleStory\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -74,7 +75,7 @@
             "version": "[9.0.13, 9.0.13]"
           },
           {
-            "name": "Microsoft.NETCore.App.Host.win-x64",
+            "name": "Microsoft.NETCore.App.Host.linux-x64",
             "version": "[9.0.13, 9.0.13]"
           },
           {
@@ -95,6 +96,11 @@
           }
         },
         "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.103/PortableRuntimeIdentifierGraph.json"
+      }
+    },
+    "runtimes": {
+      "linux-x64": {
+        "#import": []
       }
     }
   }

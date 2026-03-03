@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MapleStoryMarketGraph")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1f66d84bf44bee2db369804b8399e4ef163574cc")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1d288f9f71f2c19c81a4cb7371fe45fdcdb2341b")]
 [assembly: System.Reflection.AssemblyProductAttribute("MapleStoryMarketGraph")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MapleStoryMarketGraph")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
