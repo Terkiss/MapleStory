@@ -23,8 +23,8 @@ public class MarketDataService
     {
         // 프로젝트 루트 기준 data 폴더 경로를 설정합니다 (참조 방식)
         // bin/Debug/net9.0/ 에서 4단계 위가 workspace root이며, 그곳의 data 폴더를 참조함
-        _dataDir = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../data"));
-
+        _dataDir = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data"));
+        Console.WriteLine("커서 :: " + _dataDir);
         // 만약 위 경로에 데이터가 없다면 대체 경로 확인 (Project root 기준)
         if (!Directory.Exists(_dataDir))
         {

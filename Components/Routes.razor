@@ -1,6 +1,21 @@
 ﻿<Router AppAssembly="typeof(Program).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+            <NotAuthorized>
+                <div class="p-5 text-center">
+                    <h2 style="color: var(--maple-gold);">로그인이 필요한 서비스입니다.</h2>
+                    <p class="text-secondary mt-3">이 페이지를 보려면 먼저 로그인해주세요.</p>
+                    <a href="/login" class="dm-button-gold mt-4 d-inline-block text-decoration-none">로그인하러 가기</a>
+                </div>
+            </NotAuthorized>
+            <Authorizing>
+                <div class="p-5 text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </Authorizing>
+        </AuthorizeRouteView>
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
 </Router>

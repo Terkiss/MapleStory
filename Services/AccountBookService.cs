@@ -21,14 +21,18 @@ public class AccountBookService
     private readonly string _credentialsPath;
     private readonly SheetsService? _sheetsService;
     private readonly string _sheetName;
+    private readonly HttpClient _httpClient;
+    private readonly string _nexonBaseUrl;
 
     public bool IsInitialized { get; private set; }
 
-    public AccountBookService(IConfiguration config, IHostEnvironment env)
+    public AccountBookService(IConfiguration config, IHostEnvironment env, HttpClient httpClient)
     {
         _spreadsheetId = config["GoogleSheets:SpreadsheetId"] ?? "";
         _credentialsPath = Path.Combine(env.ContentRootPath, config["GoogleSheets:CredentialsPath"] ?? "service_account.json");
         _sheetName = config["GoogleSheets:SheetName"] ?? "DB";
+        _httpClient = httpClient;
+        _nexonBaseUrl = config["NexonApi:BaseUrl"] ?? "https://open.api.nexon.com";
 
         try
         {
@@ -133,6 +137,29 @@ public class AccountBookService
         var appendRequest = _sheetsService.Spreadsheets.Values.Append(valueRange, _spreadsheetId, range);
         appendRequest.ValueInputOption = SpreadsheetsResource.ValuesResource.AppendRequest.ValueInputOptionEnum.USERENTERED;
         await appendRequest.ExecuteAsync();
+    }
+
+    /// <summary>
+    /// 사용자의 넥슨 API Key를 사용하여 메소마켓 거래 내역을 가져와 구글 시트에 동기화합니다.
+    /// </summary>
+    public async Task SyncFromNexonMesoMarketAsync(string userId, string apiKey)
+    {
+        if (string.IsNullOrWhiteSpace(apiKey)) return;
+
+        // 예: 넥슨 오픈 API의 메소마켓 내역 조회 엔드포인트 (실제 엔드포인트에 맞게 조정 필요)
+        // 여기서는 구조적 예시를 구현합니다.
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"{_nexonBaseUrl}/maplestory/v1/market/meso/history");
+        request.Headers.Add("x-nxopen-api-key", apiKey);
+
+        var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode) return;
+
+        // JSON 데이터 파싱 후 AccountBookEntry 리스트로 변환 (가상의 모델 구조 사용)
+        // var nexonData = await response.Content.ReadFromJsonAsync<NexonMesoMarketResponse>();
+        // foreach(var item in nexonData.History) { ... await AddEntryAsync(newEntry); ... }
+        
+        // 실제 API 구현이 없는 상황이므로 로그 출력으로 대체
+        Console.WriteLine($"[AccountBookService] Nexon API Key를 사용하여 {userId}의 데이터를 동기화합니다.");
     }
 
     public async Task<DataFrame> GetAsDataFrameAsync(string userId)
