@@ -17,8 +17,11 @@ builder.Services.AddRazorComponents()
 builder.Services.AddControllers();
 
 // Database
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Scoped context for services that don't need a factory (backwards compatibility)
+builder.Services.AddScoped(sp => sp.GetRequiredService<IDbContextFactory<ApplicationDbContext>>().CreateDbContext());
 
 // Authentication & Authorization
 var jwtConfig = builder.Configuration.GetSection("Authentication:Jwt");
@@ -60,6 +63,7 @@ builder.Services.AddScoped<AccountBookService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<GoogleAuthService>();
 builder.Services.AddScoped<NexonApiService>();
+builder.Services.AddScoped<MesoMarketService>();
 
 var app = builder.Build();
 

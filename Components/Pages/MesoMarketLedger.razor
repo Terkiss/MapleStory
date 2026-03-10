@@ -1,0 +1,355 @@
+@page "/ledger/meso-market"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using MapleStoryMarketGraph.Services
+@using MapleStoryMarketGraph.Models
+@inject MesoMarketService MesoService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JS
+
+<div class="ledger-container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 style="font-weight: 800; margin: 0;">메소마켓 거래장부 <span style="font-size: 0.9rem; font-weight: 400; color: #666; margin-left: 10px;">User: @_currentUserId</span></h2>
+        <div class="d-flex gap-2">
+            <button class="dm-button-gold" @onclick="ToggleAddForm">@(_showAddForm ? "닫기" : "+ 거래 기록")</button>
+        </div>
+    </div>
+
+    @if (_showAddForm)
+    {
+        <div class="dm-card mb-4 p-4" style="background: #111; border-color: var(--maple-gold-dim);">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 style="color: var(--maple-gold); margin: 0; font-weight: 700;">거래 기록 추가</h5>
+                <div class="trade-type-switch">
+                    <button class="@(_newTrade.TradeType == "매수" ? "active" : "")" @onclick='() => SetTradeType("매수")'>매수 (메소→포인트)</button>
+                    <button class="@(_newTrade.TradeType == "매도" ? "active" : "")" @onclick='() => SetTradeType("매도")'>매도 (포인트→메소)</button>
+                </div>
+            </div>
+            
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label text-gray small">거래 일시</label>
+                    <input type="date" class="form-control bg-dark text-white border-secondary" @bind="_newTrade.Timestamp" @bind:format="yyyy-MM-dd" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-gray small">메소 수량</label>
+                    <div class="input-group">
+                        <input type="number" class="form-control bg-dark text-white border-secondary" @bind="_newTrade.MesoAmount" @oninput="OnMesoInput" />
+                        <span class="input-group-text bg-dark text-white border-secondary">메소</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-gray small">1억당 단가</label>
+                    <div class="input-group">
+                        <input type="number" class="form-control bg-dark text-white border-secondary" @bind="_newTrade.UnitPrice" @oninput="OnUnitPriceInput" />
+                        <span class="input-group-text bg-dark text-white border-secondary">포인트</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-gray small">
+                        총 메이플포인트 (자동계산)
+                        @if (_newTrade.TradeType == "매수") { <span class="text-danger" style="font-size: 0.7rem;">(수수료 1% 반영됨)</span> }
+                    </label>
+                    <div class="form-control bg-dark text-white border-secondary" style="border-style: dashed; opacity: 0.8;">
+                        @_newTrade.PointAmount.ToString("N0") 포인트
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mt-2">
+                <div class="col-md-9">
+                    <label class="form-label text-gray small">메모 (선택)</label>
+                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="_newTrade.Memo" placeholder="거래 상세 내용" />
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button class="dm-button-gold w-100" @onclick="SaveTrade" disabled="@_isSaving">
+                        @if (_isSaving) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                        <span>저장하기</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- [1] 통계 요약 카드 -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="dm-card h-100">
+                <div style="font-size: 0.75rem; color: #888; margin-bottom: 8px;">총 매수 메소 (Buy)</div>
+                <div style="font-size: 1.5rem; font-weight: 800; color: var(--maple-green);">@_totalBuyMeso.ToString("N0") <span style="font-size: 0.8rem; font-weight: 400;">MESO</span></div>
+                <div class="mt-2" style="font-size: 0.8rem; color: #666;">평균 단가: @_avgBuyPrice.ToString("N0")</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="dm-card h-100">
+                <div style="font-size: 0.75rem; color: #888; margin-bottom: 8px;">총 매도 메소 (Sell)</div>
+                <div style="font-size: 1.5rem; font-weight: 800; color: var(--maple-red);">@_totalSellMeso.ToString("N0") <span style="font-size: 0.8rem; font-weight: 400;">MESO</span></div>
+                <div class="mt-2" style="font-size: 0.8rem; color: #666;">평균 단가: @_avgSellPrice.ToString("N0")</div>
+            </div>
+        </div>
+        
+        <!-- [2] 인터랙티브 캘린더 뷰 -->
+        <div class="col-md-6">
+            <div class="dm-card p-3" style="min-height: 250px;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div style="font-weight: 700;">거래 캘린더 (@_displayMonth.Year.0@_displayMonth.Month)</div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-dark" @onclick='() => ChangeMonth(-1)'><i class="bi bi-chevron-left"></i></button>
+                        <button class="btn btn-sm btn-dark" @onclick='() => ChangeMonth(1)'><i class="bi bi-chevron-right"></i></button>
+                    </div>
+                </div>
+                <div class="calendar-grid">
+                    <div class="calendar-weekday">일</div><div class="calendar-weekday">월</div><div class="calendar-weekday">화</div>
+                    <div class="calendar-weekday">수</div><div class="calendar-weekday">목</div><div class="calendar-weekday">금</div>
+                    <div class="calendar-weekday">토</div>
+                    @foreach (var day in _calendarDays)
+                    {
+                        <div class="calendar-day @(day.Month != _displayMonth.Month ? "other-month" : "") @(day.Date == DateTime.Today ? "is-today" : "") @(day.Date == _selectedDate?.Date ? "is-selected" : "")"
+                             @onclick="() => SelectDate(day)" style="cursor: pointer;">
+                            <span class="day-number">@day.Day</span>
+                            <div class="day-indicators">
+                                @if (_tradeIndicators.TryGetValue(day.Date, out var trades))
+                                {
+                                    @if (trades.Any(t => t.TradeType == "매수")) { <div class="indicator buy"></div> }
+                                    @if (trades.Any(t => t.TradeType == "매도")) { <div class="indicator sell"></div> }
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- [3] 상세 거래 내역 -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 style="font-weight: 700; margin: 0;">
+            @(_selectedDate.HasValue 
+                ? $"{_selectedDate.Value:yyyy-MM-dd} 거래 내역" 
+                : $"{_displayMonth:yyyy년 MM월} 거래 내역")
+        </h4>
+        <div class="d-flex gap-2">
+            @if (_selectedDate.HasValue)
+            {
+                <button class="btn btn-sm btn-outline-secondary" @onclick="() => _selectedDate = null">이달의 전체보기</button>
+            }
+        </div>
+    </div>
+    <div class="dm-card p-0 overflow-hidden">
+        <table class="dm-table w-100">
+            <thead>
+                <tr>
+                    <th>날짜</th>
+                    <th>유형</th>
+                    <th class="text-end">메소 수량</th>
+                    <th class="text-end">메이플포인트</th>
+                    <th class="text-end">1억당 단가</th>
+                    <th>메모</th>
+                    <th class="text-center">관리</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+                    var displayTrades = _selectedDate.HasValue 
+                        ? _trades.Where(t => t.Timestamp.Date == _selectedDate.Value.Date).ToList() 
+                        : _trades.Where(t => t.Timestamp.Year == _displayMonth.Year && t.Timestamp.Month == _displayMonth.Month).ToList();
+                }
+                @if (displayTrades.Count == 0)
+                {
+                    <tr><td colspan="7" class="text-center py-5 text-gray">
+                        @(_selectedDate.HasValue ? "선택한 날짜에 기록된 거래가 없습니다." : $"{_displayMonth:MM}월에 기록된 거래가 없습니다.")
+                    </td></tr>
+                }
+                @foreach (var trade in displayTrades)
+                {
+                    <tr>
+                        <td style="color: #888;">@trade.Timestamp.ToString("yyyy-MM-dd")</td>
+                        <td>
+                            <span class="trade-badge @(trade.TradeType == "매수" ? "buy" : "sell")">
+                                @trade.TradeType
+                            </span>
+                        </td>
+                        <td class="text-end" style="font-weight: 700;">@trade.MesoAmount.ToString("N0")</td>
+                        <td class="text-end" style="color: var(--maple-gold); font-weight: 700;">@trade.PointAmount.ToString("N0")</td>
+                        <td class="text-end" style="color: #aaa;">@trade.UnitPrice.ToString("N0")</td>
+                        <td style="color: #666; font-size: 0.85rem;">@trade.Memo</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm text-danger" @onclick="() => DeleteTrade(trade.Id)"><i class="bi bi-trash"></i></button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .trade-type-switch { display: flex; background: #222; border-radius: 8px; padding: 4px; }
+    .trade-type-switch button { border: none; background: none; color: #888; padding: 6px 16px; font-size: 0.8rem; font-weight: 700; border-radius: 6px; transition: all 0.2s; }
+    .trade-type-switch button.active { background: var(--maple-gold); color: black; }
+    
+    .trade-badge { padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 800; }
+    .trade-badge.buy { background: rgba(76, 175, 80, 0.1); color: var(--maple-green); border: 1px solid rgba(76, 175, 80, 0.2); }
+    .trade-badge.sell { background: rgba(255, 82, 82, 0.1); color: var(--maple-red); border: 1px solid rgba(255, 82, 82, 0.2); }
+
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #1a1a1a; border: 1px solid #1a1a1a; border-radius: 8px; overflow: hidden; }
+    .calendar-weekday { background: #111; padding: 8px; text-align: center; font-size: 0.7rem; color: #555; font-weight: 700; }
+    .calendar-day { background: #0a0a0a; min-height: 40px; padding: 4px; display: flex; flex-direction: column; align-items: center; position: relative; }
+    .calendar-day.other-month { opacity: 0.2; }
+    .calendar-day.is-today { background: #1a1a12; }
+    .calendar-day.is-selected { border: 1px solid var(--maple-gold); background: #151510; }
+    .day-number { font-size: 0.75rem; color: #888; }
+    .day-indicators { display: flex; gap: 2px; margin-top: 4px; }
+    .indicator { width: 4px; height: 4px; border-radius: 50%; }
+    .indicator.buy { background: var(--maple-green); }
+    .indicator.sell { background: var(--maple-red); }
+
+    .dm-table th { padding: 15px 20px; color: #444; font-size: 0.8rem; border-bottom: 1px solid #222; }
+    .dm-table td { padding: 15px 20px; border-bottom: 1px solid #1a1a1a; font-size: 0.9rem; }
+</style>
+
+@code {
+    private string _currentUserId = "";
+    private List<MesoMarketTrade> _trades = new();
+    private MesoMarketTrade _newTrade = new() { Timestamp = DateTime.Today, TradeType = "매수", MesoAmount = 100000000, UnitPrice = 2500 };
+    private DateTime? _selectedDate = null;
+    private bool _showAddForm = false;
+    private bool _isSaving = false;
+    private double _totalBuyMeso, _totalSellMeso, _avgBuyPrice, _avgSellPrice;
+
+    private DateTime _displayMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private List<DateTime> _calendarDays = new();
+    private Dictionary<DateTime, List<MesoMarketTrade>> _tradeIndicators = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _currentUserId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "guest";
+        CalculatePoints();
+        await LoadData();
+    }
+
+    private void ToggleAddForm() => _showAddForm = !_showAddForm;
+
+    private void SetTradeType(string type)
+    {
+        _newTrade.TradeType = type;
+        CalculatePoints();
+    }
+
+    private void SelectDate(DateTime date)
+    {
+        if (_selectedDate == date) _selectedDate = null; // Toggle off if clicked same date
+        else _selectedDate = date;
+    }
+
+    private void CalculatePoints()
+    {
+        // 총 포인트 = (메소 수량 / 1억) * 단가
+        double grossPoints = (_newTrade.MesoAmount / 100_000_000.0) * _newTrade.UnitPrice;
+        
+        if (_newTrade.TradeType == "매수") // Meso -> Point
+        {
+            _newTrade.PointAmount = Math.Floor(grossPoints * 0.99); // 1% 수수료 제외 (버림 처리)
+        }
+        else // Point -> Meso
+        {
+            _newTrade.PointAmount = grossPoints; // 수수료 0%
+        }
+    }
+
+    private void OnMesoInput(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), out var val)) { _newTrade.MesoAmount = val; CalculatePoints(); }
+    }
+
+    private void OnUnitPriceInput(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), out var val)) { _newTrade.UnitPrice = val; CalculatePoints(); }
+    }
+
+    private async Task LoadData()
+    {
+        _trades = await MesoService.GetTradesAsync(_currentUserId);
+        var stats = await MesoService.GetStatisticsAsync(_currentUserId);
+        _totalBuyMeso = stats.TotalBuyMeso;
+        _totalSellMeso = stats.TotalSellMeso;
+        _avgBuyPrice = stats.AvgBuyPrice;
+        _avgSellPrice = stats.AvgSellPrice;
+
+        UpdateCalendar();
+    }
+
+    private void UpdateCalendar()
+    {
+        _calendarDays.Clear();
+        _tradeIndicators = _trades.GroupBy(t => t.Timestamp.Date).ToDictionary(g => g.Key, g => g.ToList());
+
+        var startOfMonth = new DateTime(_displayMonth.Year, _displayMonth.Month, 1);
+        int offset = (int)startOfMonth.DayOfWeek;
+        var runner = startOfMonth.AddDays(-offset);
+
+        for (int i = 0; i < 35; i++) // Show 5 weeks
+        {
+            _calendarDays.Add(runner);
+            runner = runner.AddDays(1);
+        }
+    }
+
+    private void ChangeMonth(int delta)
+    {
+        _displayMonth = _displayMonth.AddMonths(delta);
+        _selectedDate = null;
+        UpdateCalendar();
+    }
+
+    private async Task SaveTrade()
+    {
+        if (_newTrade.MesoAmount <= 0 || _newTrade.UnitPrice <= 0)
+        {
+            await JS.InvokeVoidAsync("alert", "수량과 단가를 올바르게 입력해 주세요.");
+            return;
+        }
+
+        _isSaving = true;
+        try
+        {
+            _newTrade.UserId = _currentUserId;
+            // 서비스 단에서 다시 계산하겠지만, 여기서도 최종 확정
+            CalculatePoints();
+            
+            await MesoService.AddTradeAsync(_newTrade);
+            
+            // 입력 폼 초기화 (단가는 이전 입력값 유지 - 연속 입력 편의성)
+            double lastUnitPrice = _newTrade.UnitPrice;
+            _newTrade = new MesoMarketTrade { 
+                Timestamp = DateTime.Today, 
+                TradeType = _newTrade.TradeType, 
+                MesoAmount = 100000000, 
+                UnitPrice = lastUnitPrice 
+            };
+            CalculatePoints();
+            
+            _showAddForm = false;
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"저장 오류: {ex.Message}");
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task DeleteTrade(int id)
+    {
+        if (await JS.InvokeAsync<bool>("confirm", "거래를 삭제하시겠습니까?"))
+        {
+            await MesoService.DeleteTradeAsync(id);
+            await LoadData();
+        }
+    }
+}

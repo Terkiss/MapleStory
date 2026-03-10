@@ -1,5 +1,7 @@
 @page "/ledger"
 @rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
 @using MapleStoryMarketGraph.Services
 @using MapleStoryMarketGraph.Models
 @using TeruTeruPandas.Core

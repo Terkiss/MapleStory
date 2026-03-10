@@ -11,6 +11,7 @@ namespace MapleStoryMarketGraph.Data
         }
 
         public DbSet<User> Users { get; set; }
+        public DbSet<MesoMarketTrade> MesoMarketTrades { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
