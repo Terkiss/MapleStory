@@ -6,3 +6,4 @@
 .vs/
 .vscode/
 service_account.json
+client_secret_*.json

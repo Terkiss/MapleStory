@@ -1,10 +1,11 @@
 @inherits LayoutComponentBase
 @inject NavigationManager NavigationManager
+@inject MapleStoryMarketGraph.Services.JwtAuthenticationStateProvider AuthStateProvider
 
 <div class="dotmaple-layout">
     <header class="dotmaple-topbar">
         <div class="topbar-upper">
-            <div class="logo-area" @onclick='() => NavigationManager.NavigateTo("/")'>
+            <div class="logo-area" @onclick='() => NavigationManager.NavigateTo("/")' style="cursor: pointer;">
                 <div
                     style="background: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid var(--maple-gold);">
                     <img src="/images/logo.png" style="width: 110%; height: 110%; object-fit: cover;" />
@@ -17,18 +18,35 @@
                 <input type="text" placeholder="검색" />
             </div>
 
-            <div class="user-area">
-                <div style="width: 32px; height: 32px; background: #333; border-radius: 50%;"></div>
-                <div style="font-size: 0.9rem; color: #888;">NEXON ID CONNECT</div>
+            <div class="user-area d-flex align-items-center gap-4">
+                <AuthorizeView>
+                    <Authorized>
+                        <NavLink href="mypage" class="d-flex align-items-center gap-2 text-decoration-none"
+                                 style="color: var(--text-white);">
+                            <div
+                                style="width: 32px; height: 32px; background: var(--maple-gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; color: black; font-size: 0.8rem;">
+                                @(context.User.Identity?.Name?.FirstOrDefault().ToString().ToUpper() ?? "U")
+                            </div>
+                            <div style="font-size: 0.9rem; font-weight: 600;">@context.User.Identity?.Name</div>
+                        </NavLink>
+                        <button class="btn btn-link text-decoration-none p-0 m-0 border-0"
+                                style="color: var(--text-gray); font-size: 0.85rem;" @onclick="HandleLogout">로그아웃</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <div class="d-flex gap-3">
+                            <NavLink href="login" class="text-decoration-none"
+                                     style="color: var(--text-gray); font-size: 0.9rem;">로그인</NavLink>
+                            <NavLink href="register" class="text-decoration-none"
+                                     style="color: var(--maple-gold); font-size: 0.9rem; font-weight: 700;">회원가입</NavLink>
+                        </div>
+                    </NotAuthorized>
+                </AuthorizeView>
                 <i class="bi bi-three-dots-vertical" style="color: #666; cursor: pointer;"></i>
             </div>
         </div>
 
         <nav class="nav-tabs">
-            <NavLink class="nav-tab" href="net-worth" ActiveClass="active">순자산 한눈에</NavLink>
-            <NavLink class="nav-tab" href="" Match="NavLinkMatch.All" ActiveClass="active">메소마켓</NavLink>
-            <NavLink class="nav-tab" href="cube" ActiveClass="active">큐브</NavLink>
-            <NavLink class="nav-tab" href="starforce" ActiveClass="active">스타포스</NavLink>
+            <NavLink class="nav-tab" href="" Match="NavLinkMatch.All" ActiveClass="active">메소마켓 한눈에</NavLink>
             <NavLink class="nav-tab" href="ledger" ActiveClass="active">가계부</NavLink>
         </nav>
     </header>
@@ -45,3 +63,11 @@
         overflow-y: auto;
     }
 </style>
+
+@code {
+    private async Task HandleLogout()
+    {
+        await AuthStateProvider.MarkUserAsLoggedOut();
+        NavigationManager.NavigateTo("/", forceLoad: true);
+    }
+}

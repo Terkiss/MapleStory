@@ -1,0 +1,289 @@
+@page "/mypage"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@using MapleStoryMarketGraph.Models
+@using MapleStoryMarketGraph.Services
+@using MapleStoryMarketGraph.Data
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@inject NexonApiService NexonApiService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+
+<div class="mypage-container py-5">
+    <div class="container" style="max-width: 800px;">
+        <h2 class="mb-5" style="color: var(--maple-gold); font-weight: 800;">마이페이지</h2>
+
+        <!-- Profile Section -->
+        <div class="dm-card mb-4">
+            <h4 class="mb-4" style="font-weight: 700;">사용자 정보</h4>
+            <div class="d-flex flex-column gap-3">
+                <div class="d-flex justify-content-between">
+                    <span style="color: var(--text-gray);">이름</span>
+                    <span style="font-weight: 600;">@_user?.Name</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span style="color: var(--text-gray);">이메일</span>
+                    <span style="font-weight: 600;">@_user?.Email</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span style="color: var(--text-gray);">가입 경로</span>
+                    <span
+                    class="badge @(_user?.AuthType == AuthType.Google ? "bg-primary" : "bg-secondary")">@_user?.AuthType</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Nexon API Key Section -->
+        <div class="dm-card mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="mb-0" style="font-weight: 700;">넥슨 API 연동</h4>
+                @if (!string.IsNullOrEmpty(_user?.NexonApiKey))
+                {
+                    <div class="text-end">
+                        <span class="badge bg-success px-3 py-2 mb-1" style="font-size: 0.85rem;">연동 완료</span>
+                        @if (!string.IsNullOrEmpty(_user?.SelectedCharacterName))
+                        {
+                            <div style="font-size: 0.8rem; color: var(--maple-gold);">대표: [@_user.SelectedCharacterName]</div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <span class="badge bg-danger px-3 py-2" style="font-size: 0.85rem;">미연동</span>
+                }
+            </div>
+
+            <p style="color: var(--text-gray); font-size: 0.95rem; line-height: 1.6;">
+                메이플스토리 거래소 데이터를 연동하려면 넥슨 개발자 센터에서 발급받은 API Key가 필요합니다.
+                <a href="https://openapi.nexon.com/my-application/" target="_blank"
+                       style="color: var(--maple-gold); text-decoration: underline;">
+                    가이드 보기 (외부 링크)
+                </a>
+            </p>
+
+            <div class="mt-4">
+                <label class="form-label" style="color: var(--text-gray);">넥슨 API Key 등록</label>
+                <div class="d-flex gap-2">
+                    <input type="text" class="form-control dm-input flex-grow-1" @bind="_apiKeyInput"
+                           placeholder="test_..." />
+                    <button class="dm-button-gold px-4" @onclick="HandleVerifyAndSave" disabled="@_isSaving">
+                        @(_isSaving ? "검증 중..." : "연동하기")
+                    </button>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(_message))
+            {
+                <div class="alert @(_isSuccess ? "alert-success" : "alert-danger") mt-4 py-2" style="font-size: 0.9rem;">
+                    @_message
+                </div>
+            }
+
+            @if (_characters != null)
+            {
+                <hr class="my-4" style="border-color: #333;" />
+                @if (_characters.Count > 0)
+                {
+                    <h5 class="mb-3" style="font-weight: 700; color: var(--maple-gold);">대표 캐릭터 선택</h5>
+                    <div class="character-scroll-view">
+                        @foreach (var character in _characters)
+                        {
+                            <div class="character-scroll-item @(character.Ocid == _user?.SelectedCharacterOcid ? "selected" : "")" 
+                                 @onclick="() => HandleSelectCharacter(character)">
+                                <div class="d-flex justify-content-between align-items-center w-100">
+                                    <div class="d-flex flex-column">
+                                        <span class="world">@character.WorldName</span>
+                                        <span class="name">@character.CharacterName</span>
+                                        <span class="info">Lv.@character.CharacterLevel | @character.CharacterClass</span>
+                                    </div>
+                                    @if (character.Ocid == _user?.SelectedCharacterOcid)
+                                    {
+                                        <span class="selected-badge-v2">대표</span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-4" style="color: var(--text-gray); border: 1px dashed #444; border-radius: 8px;">
+                        <i class="bi bi-exclamation-triangle me-2"></i> 이 계정에서 메이플스토리 캐릭터를 찾을 수 없습니다.<br/>
+                        <small style="font-size: 0.75rem;">(API 응답은 성공했으나 캐릭터 목록이 비어있습니다.)</small>
+                    </div>
+                }
+            }
+        </div>
+
+        <button class="btn btn-outline-danger w-100 py-2 mt-4" @onclick="HandleLogout">로그아웃</button>
+    </div>
+</div>
+
+<style>
+    .dm-input {
+        background: #1a1a1a;
+        border: 1px solid #333;
+        color: white;
+        padding: 12px;
+        border-radius: 8px;
+    }
+
+    .dm-input:focus {
+        background: #222;
+        border-color: var(--maple-gold);
+        color: white;
+    }
+
+    .character-scroll-view {
+        max-height: 400px;
+        overflow-y: auto;
+        background: #0f0f0f;
+        border: 1px solid #333;
+        border-radius: 12px;
+        padding: 10px;
+        scrollbar-width: thin;
+        box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    .character-scroll-item {
+        padding: 12px 16px;
+        margin-bottom: 6px;
+        background: #151515;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .character-scroll-item:last-child { margin-bottom: 0; }
+
+    .character-scroll-item:hover {
+        background: #1d1d1d;
+        border-color: #333;
+    }
+
+    .character-scroll-item.selected {
+        background: rgba(242, 145, 50, 0.08);
+        border-color: var(--maple-gold-dim);
+    }
+
+    .character-scroll-item .world { font-size: 0.7rem; color: #888; }
+    .character-scroll-item .name { font-weight: 700; font-size: 1.05rem; color: white; }
+    .character-scroll-item .info { font-size: 0.8rem; color: var(--text-gray); }
+
+    .selected-badge-v2 {
+        background: var(--maple-gold);
+        color: black;
+        font-size: 0.7rem;
+        font-weight: 800;
+        padding: 3px 8px;
+        border-radius: 6px;
+    }
+</style>
+
+@code {
+    private User? _user;
+    private string _apiKeyInput = "";
+    private List<NexonCharacter>? _characters;
+    private string? _message;
+    private bool _isSuccess;
+    private bool _isSaving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUser();
+    }
+
+    private async Task LoadUser()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userIdStr = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (Guid.TryParse(userIdStr, out var userId))
+        {
+            _user = await DbContext.Users.FindAsync(userId);
+            if (_user != null && !string.IsNullOrEmpty(_user.NexonApiKey))
+            {
+                _apiKeyInput = _user.NexonApiKey;
+                _characters = await NexonApiService.GetAccountCharactersAsync(_user.NexonApiKey);
+            }
+        }
+    }
+
+    private async Task HandleVerifyAndSave()
+    {
+        if (string.IsNullOrWhiteSpace(_apiKeyInput))
+        {
+            _message = "API Key를 입력해주세요.";
+            _isSuccess = false;
+            return;
+        }
+
+        _isSaving = true;
+        _message = null;
+
+        try
+        {
+            var isValid = await NexonApiService.VerifyApiKeyAsync(_apiKeyInput);
+            if (isValid)
+            {
+                if (_user != null)
+                {
+                    _user.NexonApiKey = _apiKeyInput;
+                    await DbContext.SaveChangesAsync();
+                    _characters = await NexonApiService.GetAccountCharactersAsync(_apiKeyInput);
+                    
+                    if (_characters != null && _characters.Count > 0)
+                    {
+                        _message = "연동 성공! 대표 캐릭터를 선택해주세요.";
+                        _isSuccess = true;
+                    }
+                    else
+                    {
+                        _message = "연동에 성공했지만, 해당 계정에서 캐릭터를 찾을 수 없습니다.";
+                        _isSuccess = true; // Still success for key, but no characters
+                    }
+                }
+            }
+            else
+            {
+                _message = "유효하지 않은 API Key입니다. 다시 확인해주세요.";
+                _isSuccess = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _message = $"오류 발생: {ex.Message}";
+            _isSuccess = false;
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task HandleSelectCharacter(NexonCharacter character)
+    {
+        if (_user == null) return;
+
+        _user.SelectedCharacterName = character.CharacterName;
+        _user.SelectedCharacterOcid = character.Ocid;
+        await DbContext.SaveChangesAsync();
+
+        _message = $"{character.CharacterName} 캐릭터가 대표 캐릭터로 설정되었습니다.";
+        _isSuccess = true;
+        StateHasChanged();
+    }
+
+    private async Task HandleLogout()
+    {
+        if (AuthStateProvider is JwtAuthenticationStateProvider jwtProvider)
+        {
+            await jwtProvider.MarkUserAsLoggedOut();
+            Navigation.NavigateTo("/login");
+        }
+    }
+}
