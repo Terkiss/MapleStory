@@ -74,18 +74,18 @@
 
     <!-- [1] 통계 요약 카드 -->
     <div class="row g-4 mb-4">
-        <div class="col-md-3">
-            <div class="dm-card h-100">
-                <div style="font-size: 0.75rem; color: #888; margin-bottom: 8px;">총 매수 메소 (Buy)</div>
-                <div style="font-size: 1.5rem; font-weight: 800; color: var(--maple-green);">@_totalBuyMeso.ToString("N0") <span style="font-size: 0.8rem; font-weight: 400;">MESO</span></div>
-                <div class="mt-2" style="font-size: 0.8rem; color: #666;">평균 단가: @_avgBuyPrice.ToString("N0")</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="dm-card h-100">
-                <div style="font-size: 0.75rem; color: #888; margin-bottom: 8px;">총 매도 메소 (Sell)</div>
-                <div style="font-size: 1.5rem; font-weight: 800; color: var(--maple-red);">@_totalSellMeso.ToString("N0") <span style="font-size: 0.8rem; font-weight: 400;">MESO</span></div>
-                <div class="mt-2" style="font-size: 0.8rem; color: #666;">평균 단가: @_avgSellPrice.ToString("N0")</div>
+        <div class="col-md-6">
+            <div class="dm-card h-100 d-flex p-0 overflow-hidden">
+                <div class="p-4 flex-grow-1 border-end border-secondary border-opacity-10">
+                    <div style="font-size: 0.75rem; color: #888; margin-bottom: 8px;">총 매수 메소 (Buy)</div>
+                    <div style="font-size: 1.5rem; font-weight: 800; color: var(--maple-green);">@_totalBuyMeso.ToString("N0") <span style="font-size: 0.8rem; font-weight: 400;">MESO</span></div>
+                    <div class="mt-2" style="font-size: 0.8rem; color: #666;">평균 단가: @_avgBuyPrice.ToString("N0")</div>
+                </div>
+                <div class="p-4 flex-grow-1">
+                    <div style="font-size: 0.75rem; color: #888; margin-bottom: 8px;">총 매도 메소 (Sell)</div>
+                    <div style="font-size: 1.5rem; font-weight: 800; color: var(--maple-red);">@_totalSellMeso.ToString("N0") <span style="font-size: 0.8rem; font-weight: 400;">MESO</span></div>
+                    <div class="mt-2" style="font-size: 0.8rem; color: #666;">평균 단가: @_avgSellPrice.ToString("N0")</div>
+                </div>
             </div>
         </div>
         
