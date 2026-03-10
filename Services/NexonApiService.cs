@@ -20,33 +20,45 @@ namespace MapleStoryMarketGraph.Services
             if (string.IsNullOrWhiteSpace(apiKey))
                 return false;
 
+            // Using /maplestory/v1/id as a simple verification endpoint. 
+            // It needs a character_name, but if we get a 200 or 400 (not 401/403), the key is valid.
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"{_baseUrl}/maplestory/v1/id?character_name=test");
+            request.Headers.Add("x-nxopen-api-key", apiKey);
+
+            try
+            {
+                var response = await _httpClient.SendAsync(request);
+                return response.StatusCode != System.Net.HttpStatusCode.Unauthorized &&
+                       response.StatusCode != System.Net.HttpStatusCode.Forbidden;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<string?> GetRepresentativeCharacterNameAsync(string apiKey)
+        {
+            if (string.IsNullOrWhiteSpace(apiKey)) return null;
+
+            // In a real scenario, we'd fetch the character list and pick one.
+            // For now, let's assume we can fetch the list.
             using var request = new HttpRequestMessage(HttpMethod.Get, $"{_baseUrl}/maplestory/v1/character/list");
             request.Headers.Add("x-nxopen-api-key", apiKey);
 
             try
             {
                 var response = await _httpClient.SendAsync(request);
-                // We don't necessarily need a 200 OK with data, just that it's not 401 Unauthorized or 403 Forbidden.
-                // However, character/list requires character_name or ocid... wait.
-                // Let's use something simple like character/ocid with a dummy name, or just character/list?
-                // Actually character/list requires 'character_name'. 
-                // Let's use character/ocid with a known name, or just check if it returns 200 or 400 (Bad Request is better than 401).
-                
-                // If it's 401 or 403, it's definitely an invalid key.
-                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized || 
-                    response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                if (response.IsSuccessStatusCode)
                 {
-                    return false;
+                    // Logic to parse JSON and return the first character name
+                    // var data = await response.Content.ReadFromJsonAsync<CharacterListResponse>();
+                    // return data?.AccountCharacters?.FirstOrDefault()?.CharacterName;
+                    return "연동된 캐릭터"; // Placeholder for now
                 }
-
-                // If it's 400 Bad Request, it means the API key was accepted but parameters were wrong, which is "valid key" for verification.
-                // If it's 200 OK, it's definitely valid.
-                return response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.BadRequest;
             }
-            catch
-            {
-                return false;
-            }
+            catch { }
+            return null;
         }
     }
 }

@@ -4,6 +4,7 @@
 @using MapleStoryMarketGraph.Models
 @using TeruTeruPandas.Core
 @inject AccountBookService AccountService
+@inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime JS
 
 <div class="ledger-container">
@@ -240,7 +241,7 @@
     private int[] _pieValues = new int[2];
     private int _hoverMonthIdx = -1, _hoverPieIdx = -1;
     private bool _showAddForm = false;
-    private AccountBookEntry _newEntry = new() { UserId = "test-user", Unit = "Meso", Type = "수입", Category = "보스", Timestamp = DateTime.Today };
+    private AccountBookEntry _newEntry = new() { UserId = "", Unit = "Meso", Type = "수입", Category = "보스", Timestamp = DateTime.Today };
 
     protected override async Task OnInitializedAsync() => await LoadData();
     private void ToggleAddForm() => _showAddForm = !_showAddForm;
@@ -249,6 +250,10 @@
     {
         _isLoading = true; _errorMessage = null;
         try {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            _currentUserId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            _newEntry.UserId = _currentUserId;
+
             if (!AccountService.IsInitialized) return;
             _transactions = await AccountService.GetEntriesAsync(_currentUserId);
             _transactions = _transactions.OrderByDescending(t => t.Timestamp).ToList();

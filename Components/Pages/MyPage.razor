@@ -30,7 +30,8 @@
                 </div>
                 <div class="d-flex justify-content-between">
                     <span style="color: var(--text-gray);">가입 경로</span>
-                    <span class="badge @(_user?.AuthType == AuthType.Google ? "bg-primary" : "bg-secondary")">@_user?.AuthType</span>
+                    <span
+                    class="badge @(_user?.AuthType == AuthType.Google ? "bg-primary" : "bg-secondary")">@_user?.AuthType</span>
                 </div>
             </div>
         </div>
@@ -41,7 +42,13 @@
                 <h4 class="mb-0" style="font-weight: 700;">넥슨 API 연동</h4>
                 @if (!string.IsNullOrEmpty(_user?.NexonApiKey))
                 {
-                    <span class="badge bg-success px-3 py-2" style="font-size: 0.85rem;">연동 완료</span>
+                    <div class="text-end">
+                        <span class="badge bg-success px-3 py-2 mb-1" style="font-size: 0.85rem;">연동 완료</span>
+                        @if (!string.IsNullOrEmpty(_characterName))
+                        {
+                            <div style="font-size: 0.8rem; color: var(--maple-gold);">[@_characterName]</div>
+                        }
+                    </div>
                 }
                 else
                 {
@@ -51,7 +58,8 @@
 
             <p style="color: var(--text-gray); font-size: 0.95rem; line-height: 1.6;">
                 메이플스토리 거래소 데이터를 연동하려면 넥슨 개발자 센터에서 발급받은 API Key가 필요합니다.
-                <a href="https://openapi.nexon.com/my-application/" target="_blank" style="color: var(--maple-gold); text-decoration: underline;">
+                <a href="https://openapi.nexon.com/my-application/" target="_blank"
+                       style="color: var(--maple-gold); text-decoration: underline;">
                     가이드 보기 (외부 링크)
                 </a>
             </p>
@@ -59,7 +67,8 @@
             <div class="mt-4">
                 <label class="form-label" style="color: var(--text-gray);">넥슨 API Key 등록</label>
                 <div class="d-flex gap-2">
-                    <input type="text" class="form-control dm-input flex-grow-1" @bind="_apiKeyInput" placeholder="test_..." />
+                    <input type="text" class="form-control dm-input flex-grow-1" @bind="_apiKeyInput"
+                           placeholder="test_..." />
                     <button class="dm-button-gold px-4" @onclick="HandleVerifyAndSave" disabled="@_isSaving">
                         @(_isSaving ? "검증 중..." : "연동하기")
                     </button>
@@ -86,6 +95,7 @@
         padding: 12px;
         border-radius: 8px;
     }
+
     .dm-input:focus {
         background: #222;
         border-color: var(--maple-gold);
@@ -96,6 +106,7 @@
 @code {
     private User? _user;
     private string _apiKeyInput = "";
+    private string? _characterName;
     private string? _message;
     private bool _isSuccess;
     private bool _isSaving;
@@ -116,6 +127,7 @@
             if (_user != null && !string.IsNullOrEmpty(_user.NexonApiKey))
             {
                 _apiKeyInput = _user.NexonApiKey;
+                _characterName = await NexonApiService.GetRepresentativeCharacterNameAsync(_user.NexonApiKey);
             }
         }
     }
@@ -141,6 +153,7 @@
                 {
                     _user.NexonApiKey = _apiKeyInput;
                     await DbContext.SaveChangesAsync();
+                    _characterName = await NexonApiService.GetRepresentativeCharacterNameAsync(_apiKeyInput);
                     _message = "연동 성공! 이제 모든 데이터를 조회할 수 있습니다.";
                     _isSuccess = true;
                 }
