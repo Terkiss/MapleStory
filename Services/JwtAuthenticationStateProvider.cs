@@ -23,7 +23,7 @@ namespace MapleStoryMarketGraph.Services
         {
             try
             {
-                var token = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", "authToken");
+                var token = await _jsRuntime.InvokeAsync<string?>("sessionStorage.getItem", "authToken");
 
                 if (string.IsNullOrWhiteSpace(token))
                 {
@@ -45,7 +45,7 @@ namespace MapleStoryMarketGraph.Services
 
         public async Task MarkUserAsAuthenticated(string token)
         {
-            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "authToken", token);
+            await _jsRuntime.InvokeVoidAsync("sessionStorage.setItem", "authToken", token);
             _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             var claims = ParseClaimsFromJwt(token);
             var identity = new ClaimsIdentity(claims, "jwt");
@@ -57,7 +57,7 @@ namespace MapleStoryMarketGraph.Services
 
         public async Task MarkUserAsLoggedOut()
         {
-            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+            await _jsRuntime.InvokeVoidAsync("sessionStorage.removeItem", "authToken");
             _httpClient.DefaultRequestHeaders.Authorization = null;
             var anonymousUser = new ClaimsPrincipal(new ClaimsIdentity());
             var authState = Task.FromResult(new AuthenticationState(anonymousUser));

@@ -31,6 +31,10 @@ namespace MapleStoryMarketGraph.Models
 
         public string? NexonApiKey { get; set; }
 
+        public string? SelectedCharacterName { get; set; }
+
+        public string? SelectedCharacterOcid { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }
