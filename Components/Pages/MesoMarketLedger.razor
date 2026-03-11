@@ -22,8 +22,8 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h5 style="color: var(--maple-gold); margin: 0; font-weight: 700;">거래 기록 추가</h5>
                 <div class="trade-type-switch">
-                    <button class="@(_newTrade.TradeType == "매수" ? "active" : "")" @onclick='() => SetTradeType("매수")'>메소 매수 (포인트 지출)</button>
-                    <button class="@(_newTrade.TradeType == "매도" ? "active" : "")" @onclick='() => SetTradeType("매도")'>메소 매도 (포인트 획득)</button>
+                    <button class="@(_newTrade.TradeType == "매수" ? "active" : "")" @onclick='() => SetTradeType("매수")'>포인트 매수 (메소 판매)</button>
+                    <button class="@(_newTrade.TradeType == "매도" ? "active" : "")" @onclick='() => SetTradeType("매도")'>포인트 매도 (메소 구매)</button>
                 </div>
             </div>
             
@@ -49,10 +49,10 @@
                 <div class="col-md-3">
                     <label class="form-label text-gray small">
                         총 메이플포인트 (자동계산)
-                        @if (_newTrade.TradeType == "매수") { <span class="text-danger" style="font-size: 0.7rem;">(수수료 1% 포함됨)</span> }
+                        @if (_newTrade.TradeType == "매수") { <span class="text-danger" style="font-size: 0.7rem;">(수수료 1% 제하고 수령)</span> }
                     </label>
                     <div class="form-control bg-dark text-white border-secondary" style="border-style: dashed; opacity: 0.8;">
-                        @(_newTrade.TradeType == "매도" ? "실수령 " : "지불 ") @_newTrade.PointAmount.ToString("N0") 포인트
+                        @(_newTrade.TradeType == "매수" ? "실수령 " : "지불 ") @_newTrade.PointAmount.ToString("N0") 포인트
                     </div>
                 </div>
             </div>
@@ -80,9 +80,9 @@
                 <div class="col-md-7 border-end border-secondary border-opacity-10">
                     <div class="p-4">
                         <div class="summary-item mb-4">
-                            <div class="label">총 매수 포인트 (Cost)</div>
+                            <div class="label">총 획득 포인트 (Revenue)</div>
                             <div class="value buy">@_totalBuyPoint.ToString("N0") <span class="unit">MP</span></div>
-                            <div class="sub-label">평균 단가: @_avgBuyPrice.ToString("N0")</div>
+                            <div class="sub-label">평균 매도 단가: @_avgBuyPrice.ToString("N0")</div>
                         </div>
                         <div class="summary-item">
                             <div class="label">실현 손익 (Realized P/L)</div>
@@ -97,9 +97,9 @@
                 <div class="col-md-5">
                     <div class="p-4">
                         <div class="summary-item h-100 d-flex flex-column justify-content-center">
-                            <div class="label">총 매도 포인트 (Revenue)</div>
+                            <div class="label">총 지출 포인트 (Cost)</div>
                             <div class="value sell">@_totalSellPoint.ToString("N0") <span class="unit">MP</span></div>
-                            <div class="sub-label">평균 단가: @_avgSellPrice.ToString("N0")</div>
+                            <div class="sub-label">평균 매수 단가: @_avgSellPrice.ToString("N0")</div>
                         </div>
                     </div>
                 </div>
@@ -301,11 +301,11 @@
         // 총 포인트 = (메소 수량 / 1억) * 단가
         double grossPoints = (_newTrade.MesoAmount / 100_000_000.0) * _newTrade.UnitPrice;
         
-        if (_newTrade.TradeType == "매수") // Meso Buy (Point -> Meso)
+        if (_newTrade.TradeType == "매수") // Point Buy (Meso -> Point)
         {
-            _newTrade.PointAmount = Math.Ceiling(grossPoints * 1.01); // 1% 수수료 지불 (올림 처리)
+            _newTrade.PointAmount = Math.Floor(grossPoints * 0.99); // 1% 수수료 제외 (버림 처리)
         }
-        else // Meso Sell (Meso -> Point)
+        else // Point Sell (Point -> Meso)
         {
             _newTrade.PointAmount = grossPoints; // 수수료 0%
         }
@@ -332,12 +332,11 @@
         _totalBuyMeso = stats.TotalBuyMeso;
         _totalSellMeso = stats.TotalSellMeso;
 
-        // 유저 요청에 따른 포인트 관리형 손익 계산 (매수단가 > 매도단가 일 때 양수 표시)
+        // Realized P/L = Revenue - Cost
         if (_avgBuyPrice > 0 && _totalSellMeso > 0)
         {
-            double costBasis = _avgBuyPrice * (_totalSellMeso / 100_000_000.0);
-            _realizedPL = costBasis - _totalSellPoint; // 부호 반전
-            _realizedPLRatio = costBasis > 0 ? (_realizedPL / costBasis) * 100 : 0;
+            _realizedPL = _totalBuyPoint - _totalSellPoint; // 단순 차액 (전체 획득 - 전체 지불)
+            _realizedPLRatio = _totalSellPoint > 0 ? (_realizedPL / _totalSellPoint) * 100 : 0;
         }
         else
         {
