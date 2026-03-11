@@ -300,11 +300,11 @@
         // 총 포인트 = (메소 수량 / 1억) * 단가
         double grossPoints = (_newTrade.MesoAmount / 100_000_000.0) * _newTrade.UnitPrice;
         
-        if (_newTrade.TradeType == "매수") // Meso -> Point
+        if (_newTrade.TradeType == "매도") // Meso -> Point (Sell)
         {
             _newTrade.PointAmount = Math.Floor(grossPoints * 0.99); // 1% 수수료 제외 (버림 처리)
         }
-        else // Point -> Meso
+        else // Point -> Meso (Buy)
         {
             _newTrade.PointAmount = grossPoints; // 수수료 0%
         }
