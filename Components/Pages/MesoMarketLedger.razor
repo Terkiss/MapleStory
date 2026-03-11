@@ -332,11 +332,11 @@
         _totalBuyMeso = stats.TotalBuyMeso;
         _totalSellMeso = stats.TotalSellMeso;
 
-        // 실현 순손익 계산: 실제 번 포인트(매도액) - (매도한 만큼의 메소의 원가)
+        // 유저 요청에 따른 포인트 관리형 손익 계산 (매수단가 > 매도단가 일 때 양수 표시)
         if (_avgBuyPrice > 0 && _totalSellMeso > 0)
         {
-            _realizedPL = _totalSellPoint - (_totalSellMeso * _avgBuyPrice / 100_000_000.0);
             double costBasis = _avgBuyPrice * (_totalSellMeso / 100_000_000.0);
+            _realizedPL = costBasis - _totalSellPoint; // 부호 반전
             _realizedPLRatio = costBasis > 0 ? (_realizedPL / costBasis) * 100 : 0;
         }
         else
