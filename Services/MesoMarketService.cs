@@ -62,8 +62,8 @@ public class MesoMarketService
         double totalBuyMeso = buyTrades.Sum(t => t.MesoAmount);
         double totalSellMeso = sellTrades.Sum(t => t.MesoAmount);
 
-        double avgBuyPrice = buyTrades.Any() ? buyTrades.Average(t => t.UnitPrice) : 0;
-        double avgSellPrice = sellTrades.Any() ? sellTrades.Average(t => t.UnitPrice) : 0;
+        double avgBuyPrice = buyTrades.Any() ? buyTrades.Sum(t => t.UnitPrice * t.MesoAmount) / buyTrades.Sum(t => t.MesoAmount) : 0;
+        double avgSellPrice = sellTrades.Any() ? sellTrades.Sum(t => t.UnitPrice * t.MesoAmount) / sellTrades.Sum(t => t.MesoAmount) : 0;
 
         return (totalBuyPoint, totalSellPoint, avgBuyPrice, avgSellPrice, totalBuyMeso, totalSellMeso);
     }
