@@ -7,6 +7,7 @@ namespace MapleStoryMarketGraph.Models;
 /// </summary>
 public class AccountBookEntry
 {
+    public int Id { get; set; } // 기본 키 (SQLite용)
     public string UserId { get; set; } = string.Empty; // 사용자 식별자
     public DateTime Timestamp { get; set; } = DateTime.Now; // 거래 일시
     public string Type { get; set; } = "지출"; // 수입 / 지출

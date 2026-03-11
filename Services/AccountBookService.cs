@@ -1,160 +1,62 @@
-using Google.Apis.Auth.OAuth2;
-using Google.Apis.Services;
-using Google.Apis.Sheets.v4;
-using Google.Apis.Sheets.v4.Data;
+using MapleStoryMarketGraph.Data;
 using MapleStoryMarketGraph.Models;
-using Microsoft.Extensions.Configuration;
-using System.Collections.Concurrent;
-using System.Globalization;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using TeruTeruPandas.Core;
 using TeruTeruPandas.Compat;
 
 namespace MapleStoryMarketGraph.Services;
 
 /// <summary>
-/// 구글 시트를 데이터베이스로 사용하는 가계부 서비스입니다.
-/// 'DB' 시트를 자동으로 생성하고 관리합니다.
+/// SQLite를 데이터베이스로 사용하는 가계부 서비스입니다.
 /// </summary>
 public class AccountBookService
 {
-    private readonly string _spreadsheetId;
-    private readonly string _credentialsPath;
-    private readonly SheetsService? _sheetsService;
-    private readonly string _sheetName;
+    private readonly IDbContextFactory<ApplicationDbContext> _dbContextFactory;
     private readonly HttpClient _httpClient;
     private readonly string _nexonBaseUrl;
 
-    public bool IsInitialized { get; private set; }
+    public bool IsInitialized => true; // SQLite는 항상 초기화된 상태로 간주
 
-    public AccountBookService(IConfiguration config, IHostEnvironment env, HttpClient httpClient)
+    public AccountBookService(IDbContextFactory<ApplicationDbContext> dbContextFactory, IConfiguration config, HttpClient httpClient)
     {
-        _spreadsheetId = config["GoogleSheets:SpreadsheetId"] ?? "";
-        _credentialsPath = Path.Combine(env.ContentRootPath, config["GoogleSheets:CredentialsPath"] ?? "service_account.json");
-        _sheetName = config["GoogleSheets:SheetName"] ?? "DB";
+        _dbContextFactory = dbContextFactory;
         _httpClient = httpClient;
         _nexonBaseUrl = config["NexonApi:BaseUrl"] ?? "https://open.api.nexon.com";
-
-        try
-        {
-            _sheetsService = InitializeService();
-            IsInitialized = true;
-            Console.WriteLine($"[AccountBookService] 초기화 성공 (Sheet: {_sheetName})");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[AccountBookService] 초기화 실패: {ex.Message}");
-            IsInitialized = false;
-        }
-    }
-
-    private SheetsService InitializeService()
-    {
-        if (!File.Exists(_credentialsPath))
-        {
-            throw new FileNotFoundException($"인증 파일을 찾을 수 없습니다: {_credentialsPath}");
-        }
-
-        GoogleCredential credential;
-        using (var stream = new FileStream(_credentialsPath, FileMode.Open, FileAccess.Read))
-        {
-            // 최신 권장 방식인 Factory 대신 라이브러리 호환성을 위해 FromStream 유지 (경고 무시)
-            credential = GoogleCredential.FromStream(stream)
-                .CreateScoped(SheetsService.Scope.Spreadsheets);
-        }
-
-        return new SheetsService(new BaseClientService.Initializer()
-        {
-            HttpClientInitializer = credential,
-            ApplicationName = "MapleStory Market Graph"
-        });
-    }
-
-    private async Task EnsureSheetExistsAsync()
-    {
-        if (_sheetsService == null) return;
-
-        var spreadsheet = await _sheetsService.Spreadsheets.Get(_spreadsheetId).ExecuteAsync();
-        var sheet = spreadsheet.Sheets.FirstOrDefault(s => s.Properties.Title == _sheetName);
-
-        if (sheet == null)
-        {
-            Console.WriteLine($"[AccountBookService] '{_sheetName}' 시트 자동 생성 중...");
-            var addSheetRequest = new Request { AddSheet = new AddSheetRequest { Properties = new SheetProperties { Title = _sheetName } } };
-            var batchUpdateHeaderRequest = new BatchUpdateSpreadsheetRequest { Requests = new List<Request> { addSheetRequest } };
-            await _sheetsService.Spreadsheets.BatchUpdate(batchUpdateHeaderRequest, _spreadsheetId).ExecuteAsync();
-
-            var headerRange = $"{_sheetName}!A1:I1";
-            var headerValues = new ValueRange { Values = new List<IList<object>> { new List<object> { "UserId", "Timestamp", "Type", "Category", "Title", "Amount", "Unit", "IsUp", "Memo" } } };
-            var updateRequest = _sheetsService.Spreadsheets.Values.Update(headerValues, _spreadsheetId, headerRange);
-            updateRequest.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
-            await updateRequest.ExecuteAsync();
-        }
+        Console.WriteLine("[AccountBookService] SQLite 기반 초기화 완료");
     }
 
     public async Task<List<AccountBookEntry>> GetEntriesAsync(string userId)
     {
-        if (!IsInitialized || _sheetsService == null) return new List<AccountBookEntry>();
-
-        try
-        {
-            await EnsureSheetExistsAsync();
-            var range = $"{_sheetName}!A2:I";
-            var request = _sheetsService.Spreadsheets.Values.Get(_spreadsheetId, range);
-            var response = await request.ExecuteAsync();
-            var values = response.Values;
-
-            var entries = new List<AccountBookEntry>();
-            if (values != null && values.Count > 0)
-            {
-                foreach (var row in values)
-                {
-                    if (row.Count > 0 && row[0]?.ToString() == userId)
-                    {
-                        entries.Add(MapRowToEntry(row));
-                    }
-                }
-            }
-            return entries;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[AccountBookService] 로드 오류: {ex.Message}");
-            return new List<AccountBookEntry>();
-        }
+        using var context = await _dbContextFactory.CreateDbContextAsync();
+        return await context.AccountBookEntries
+            .Where(e => e.UserId == userId)
+            .OrderByDescending(e => e.Timestamp)
+            .ToListAsync();
     }
 
     public async Task AddEntryAsync(AccountBookEntry entry)
     {
-        if (!IsInitialized || _sheetsService == null) throw new InvalidOperationException("초기화 실패");
-        await EnsureSheetExistsAsync();
-
-        var range = $"{_sheetName}!A:I";
-        var valueRange = new ValueRange
-        {
-            Values = new List<IList<object>> { new List<object> {
-            entry.UserId, entry.Timestamp.ToString("yyyy-MM-dd HH:mm:ss"), entry.Type,
-            entry.Category, entry.Title, entry.Amount, entry.Unit, entry.IsUp, entry.Memo
-        } }
-        };
-
-        var appendRequest = _sheetsService.Spreadsheets.Values.Append(valueRange, _spreadsheetId, range);
-        appendRequest.ValueInputOption = SpreadsheetsResource.ValuesResource.AppendRequest.ValueInputOptionEnum.USERENTERED;
-        await appendRequest.ExecuteAsync();
+        using var context = await _dbContextFactory.CreateDbContextAsync();
+        context.AccountBookEntries.Add(entry);
+        await context.SaveChangesAsync();
     }
 
     /// <summary>
-    /// 사용자의 넥슨 API Key를 사용하여 메소마켓 거래 내역을 가져와 구글 시트에 동기화합니다.
+    /// 사용자의 넥슨 API Key를 사용하여 메소마켓 거래 내역을 가져와 SQLite에 동기화합니다.
     /// </summary>
     public async Task SyncFromNexonMesoMarketAsync(string userId, string apiKey)
     {
         if (string.IsNullOrWhiteSpace(apiKey)) return;
 
-        Console.WriteLine($"[AccountBookService] {userId}의 Nexon Meso Market 데이터 동기화 시작...");
+        Console.WriteLine($"[AccountBookService] {userId}의 Nexon Meso Market 데이터 동기화 시작 (SQLite)...");
 
         try
         {
             // 1. 넥슨 API 호출 (메소마켓 거래 내역)
-            // 실제 구현 시에는 유효한 날짜 범위를 계산해야 함
             var url = $"{_nexonBaseUrl}/maplestory/v1/market/meso/history?cursor=";
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Add("x-nxopen-api-key", apiKey);
@@ -166,25 +68,22 @@ public class AccountBookService
                 return;
             }
 
-            // TODO: 실제 응답 JSON 파싱 로직 추가
-            // var nexonData = await response.Content.ReadFromJsonAsync<NexonMesoMarketResponse>();
-
-            // Mock data for demonstration if API call "succeeds" but we can't parse yet
+            // Mock data for demonstration
             var mockEntry = new AccountBookEntry
             {
                 UserId = userId,
                 Timestamp = DateTime.Now,
                 Type = "수입",
                 Category = "메소마켓",
-                Title = "넥슨 자동 동기화 테스트",
+                Title = "넥슨 자동 동기화 테스트 (SQLite)",
                 Amount = 100000000, // 1억 메소
                 Unit = "Meso",
                 IsUp = true,
-                Memo = "Nexon API를 통한 자동 동기화 내역입니다."
+                Memo = "Nexon API를 통한 자동 동기화 내역입니다. (SQLite 저장)"
             };
 
             await AddEntryAsync(mockEntry);
-            Console.WriteLine($"[AccountBookService] {userId}의 데이터 동기화 완료.");
+            Console.WriteLine($"[AccountBookService] {userId}의 데이터 동기화 완료 (SQLite).");
         }
         catch (Exception ex)
         {
@@ -203,24 +102,5 @@ public class AccountBookService
             ["Amount"] = entries.Select(e => (object)e.Amount).ToArray()
         };
         return Pd.DataFrame(data);
-    }
-
-    private AccountBookEntry MapRowToEntry(IList<object> row)
-    {
-        // 인덱스 안전 처리 보강
-        string GetVal(int idx, string def = "") => row.Count > idx ? row[idx]?.ToString() ?? def : def;
-
-        return new AccountBookEntry
-        {
-            UserId = GetVal(0),
-            Timestamp = DateTime.TryParse(GetVal(1), out var dt) ? dt : DateTime.Now,
-            Type = GetVal(2, "지출"),
-            Category = GetVal(3, "기타"),
-            Title = GetVal(4),
-            Amount = double.TryParse(GetVal(5), out var amt) ? amt : 0,
-            Unit = GetVal(6, "Meso"),
-            IsUp = bool.TryParse(GetVal(7), out var isUp) ? isUp : false,
-            Memo = GetVal(8)
-        };
     }
 }

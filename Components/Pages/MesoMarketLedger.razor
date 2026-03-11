@@ -72,28 +72,47 @@
         </div>
     }
 
-    <!-- [1] 통계 요약 카드 -->
-    <div class="row g-4 mb-4">
-        <div class="col-md-6">
-            <div class="dm-card h-100 d-flex p-0 overflow-hidden">
-                <div class="p-4 flex-grow-1 border-end border-secondary border-opacity-10">
-                    <div style="font-size: 0.75rem; color: #888; margin-bottom: 8px;">총 매수 메소 (Buy)</div>
-                    <div style="font-size: 1.5rem; font-weight: 800; color: var(--maple-green);">@_totalBuyMeso.ToString("N0") <span style="font-size: 0.8rem; font-weight: 400;">MESO</span></div>
-                    <div class="mt-2" style="font-size: 0.8rem; color: #666;">평균 단가: @_avgBuyPrice.ToString("N0")</div>
+    <!-- [1] 통계 요약 섹션 (통합 프리미엄 카드) -->
+    <div class="summary-section mb-4">
+        <div class="dm-card summary-card p-0 overflow-hidden">
+            <div class="row g-0">
+                <!-- 좌측: 매수 및 실현 손익 -->
+                <div class="col-md-7 border-end border-secondary border-opacity-10">
+                    <div class="p-4">
+                        <div class="summary-item mb-4">
+                            <div class="label">총 매수 메소 (Buy)</div>
+                            <div class="value buy">@_totalBuyMeso.ToString("N0") <span class="unit">MESO</span></div>
+                            <div class="sub-label">평균 단가: @_avgBuyPrice.ToString("N0")</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="label">실현 손익 (Realized P/L)</div>
+                            <div class="value @(_realizedPL >= 0 ? "profit" : "loss")">
+                                @(_realizedPL >= 0 ? "+" : "")@_realizedPL.ToString("N0") <span class="unit">MP</span>
+                            </div>
+                            <div class="sub-label">실현 손익률: <span class="@(_realizedPL >= 0 ? "text-success" : "text-danger")">@_realizedPLRatio.ToString("F2")%</span></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="p-4 flex-grow-1">
-                    <div style="font-size: 0.75rem; color: #888; margin-bottom: 8px;">총 매도 메소 (Sell)</div>
-                    <div style="font-size: 1.5rem; font-weight: 800; color: var(--maple-red);">@_totalSellMeso.ToString("N0") <span style="font-size: 0.8rem; font-weight: 400;">MESO</span></div>
-                    <div class="mt-2" style="font-size: 0.8rem; color: #666;">평균 단가: @_avgSellPrice.ToString("N0")</div>
+                <!-- 우측: 매도 -->
+                <div class="col-md-5">
+                    <div class="p-4">
+                        <div class="summary-item h-100 d-flex flex-column justify-content-center">
+                            <div class="label">총 매도 메소 (Sell)</div>
+                            <div class="value sell">@_totalSellMeso.ToString("N0") <span class="unit">MESO</span></div>
+                            <div class="sub-label">평균 단가: @_avgSellPrice.ToString("N0")</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <!-- [2] 인터랙티브 캘린더 뷰 -->
-        <div class="col-md-6">
+    </div>
+
+    <!-- [2] 인터랙티브 캘린더 뷰 -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
             <div class="dm-card p-3" style="min-height: 250px;">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div style="font-weight: 700;">거래 캘린더 (@_displayMonth.Year.0@_displayMonth.Month)</div>
+                    <div style="font-weight: 700;">거래 캘린더 (@_displayMonth.ToString("yyyy.MM"))</div>
                     <div class="d-flex gap-2">
                         <button class="btn btn-sm btn-dark" @onclick='() => ChangeMonth(-1)'><i class="bi bi-chevron-left"></i></button>
                         <button class="btn btn-sm btn-dark" @onclick='() => ChangeMonth(1)'><i class="bi bi-chevron-right"></i></button>
@@ -185,6 +204,37 @@
 </div>
 
 <style>
+    .summary-card {
+        background: rgba(20, 20, 20, 0.6);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .summary-item .label {
+        font-size: 0.75rem;
+        color: #888;
+        margin-bottom: 4px;
+    }
+    .summary-item .value {
+        font-size: 1.8rem;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+    .summary-item .value.buy { color: var(--maple-green); }
+    .summary-item .value.sell { color: #FF5252; }
+    .summary-item .value.profit { color: var(--maple-green); }
+    .summary-item .value.loss { color: #FF5252; }
+    .summary-item .value .unit {
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin-left: 4px;
+        opacity: 0.7;
+    }
+    .summary-item .sub-label {
+        font-size: 0.85rem;
+        color: #666;
+        margin-top: 4px;
+    }
+
     .trade-type-switch { display: flex; background: #222; border-radius: 8px; padding: 4px; }
     .trade-type-switch button { border: none; background: none; color: #888; padding: 6px 16px; font-size: 0.8rem; font-weight: 700; border-radius: 6px; transition: all 0.2s; }
     .trade-type-switch button.active { background: var(--maple-gold); color: black; }
@@ -217,6 +267,7 @@
     private bool _showAddForm = false;
     private bool _isSaving = false;
     private double _totalBuyMeso, _totalSellMeso, _avgBuyPrice, _avgSellPrice;
+    private double _realizedPL, _realizedPLRatio;
 
     private DateTime _displayMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
     private List<DateTime> _calendarDays = new();
@@ -277,6 +328,26 @@
         _totalSellMeso = stats.TotalSellMeso;
         _avgBuyPrice = stats.AvgBuyPrice;
         _avgSellPrice = stats.AvgSellPrice;
+
+        // 실현 손익 계산: (평균 매도 단가 - 평균 매수 단가) * 매도한 메소 수량(억 단위)
+        // 매수 총액이 없으면 계산 불가 (0으로 처리)
+        if (_avgBuyPrice > 0 && _totalSellMeso > 0)
+        {
+            _realizedPL = (_avgSellPrice - _avgBuyPrice) * (_totalSellMeso / 100_000_000.0) * 100_000_000.0; // 메소 단위로 환산?
+            // 이미지에서는 메소 단위로 표시되는 것으로 보임. (단위가 MESO로 적혀있음)
+            // 하지만 손익은 보통 포인트(통화) 단위로 계산하는 것이 일반적임.
+            // 이미지의 "-30,000,000,000 MESO"는 매우 큰 수치임.
+            // 여기서는 산식대로 계산 후 MESO 단위를 붙임.
+            // 실현 손익 = (평균 매도 단가 - 평균 매수 단가) * (매도한 메소 수량 / 1억)
+            // 단위: 메이플포인트 (MP)
+            _realizedPL = (_avgSellPrice - _avgBuyPrice) * (_totalSellMeso / 100_000_000.0);
+            _realizedPLRatio = ((_avgSellPrice - _avgBuyPrice) / _avgBuyPrice) * 100;
+        }
+        else
+        {
+            _realizedPL = 0;
+            _realizedPLRatio = 0;
+        }
 
         UpdateCalendar();
     }
