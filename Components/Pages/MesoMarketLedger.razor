@@ -49,7 +49,7 @@
                 <div class="col-md-3">
                     <label class="form-label text-gray small">
                         총 메이플포인트 (자동계산)
-                        @if (_newTrade.TradeType == "매도") { <span class="text-danger" style="font-size: 0.7rem;">(수수료 1% 반영됨)</span> }
+                        @if (_newTrade.TradeType == "매수") { <span class="text-danger" style="font-size: 0.7rem;">(수수료 1% 포함됨)</span> }
                     </label>
                     <div class="form-control bg-dark text-white border-secondary" style="border-style: dashed; opacity: 0.8;">
                         @(_newTrade.TradeType == "매도" ? "실수령 " : "지불 ") @_newTrade.PointAmount.ToString("N0") 포인트
@@ -301,11 +301,11 @@
         // 총 포인트 = (메소 수량 / 1억) * 단가
         double grossPoints = (_newTrade.MesoAmount / 100_000_000.0) * _newTrade.UnitPrice;
         
-        if (_newTrade.TradeType == "매도") // Meso -> Point (Sell)
+        if (_newTrade.TradeType == "매수") // Meso Buy (Point -> Meso)
         {
-            _newTrade.PointAmount = Math.Floor(grossPoints * 0.99); // 1% 수수료 제외 (버림 처리)
+            _newTrade.PointAmount = Math.Ceiling(grossPoints * 1.01); // 1% 수수료 지불 (올림 처리)
         }
-        else // Point -> Meso (Buy)
+        else // Meso Sell (Meso -> Point)
         {
             _newTrade.PointAmount = grossPoints; // 수수료 0%
         }
