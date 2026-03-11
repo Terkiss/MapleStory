@@ -80,8 +80,8 @@
                 <div class="col-md-7 border-end border-secondary border-opacity-10">
                     <div class="p-4">
                         <div class="summary-item mb-4">
-                            <div class="label">총 매수 메소 (Buy)</div>
-                            <div class="value buy">@_totalBuyMeso.ToString("N0") <span class="unit">MESO</span></div>
+                            <div class="label">총 매수 포인트 (Cost)</div>
+                            <div class="value buy">@_totalBuyPoint.ToString("N0") <span class="unit">MP</span></div>
                             <div class="sub-label">평균 단가: @_avgBuyPrice.ToString("N0")</div>
                         </div>
                         <div class="summary-item">
@@ -97,8 +97,8 @@
                 <div class="col-md-5">
                     <div class="p-4">
                         <div class="summary-item h-100 d-flex flex-column justify-content-center">
-                            <div class="label">총 매도 메소 (Sell)</div>
-                            <div class="value sell">@_totalSellMeso.ToString("N0") <span class="unit">MESO</span></div>
+                            <div class="label">총 매도 포인트 (Revenue)</div>
+                            <div class="value sell">@_totalSellPoint.ToString("N0") <span class="unit">MP</span></div>
                             <div class="sub-label">평균 단가: @_avgSellPrice.ToString("N0")</div>
                         </div>
                     </div>
@@ -266,7 +266,8 @@
     private DateTime? _selectedDate = null;
     private bool _showAddForm = false;
     private bool _isSaving = false;
-    private double _totalBuyMeso, _totalSellMeso, _avgBuyPrice, _avgSellPrice;
+    private double _totalBuyPoint, _totalSellPoint, _avgBuyPrice, _avgSellPrice;
+    private double _totalBuyMeso, _totalSellMeso;
     private double _realizedPL, _realizedPLRatio;
 
     private DateTime _displayMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
@@ -324,10 +325,12 @@
     {
         _trades = await MesoService.GetTradesAsync(_currentUserId);
         var stats = await MesoService.GetStatisticsAsync(_currentUserId);
-        _totalBuyMeso = stats.TotalBuyMeso;
-        _totalSellMeso = stats.TotalSellMeso;
+        _totalBuyPoint = stats.TotalBuyPoint;
+        _totalSellPoint = stats.TotalSellPoint;
         _avgBuyPrice = stats.AvgBuyPrice;
         _avgSellPrice = stats.AvgSellPrice;
+        _totalBuyMeso = stats.TotalBuyMeso;
+        _totalSellMeso = stats.TotalSellMeso;
 
         // 실현 손익 계산: (평균 매도 단가 - 평균 매수 단가) * 매도한 메소 수량(억 단위)
         // 매수 총액이 없으면 계산 불가 (0으로 처리)

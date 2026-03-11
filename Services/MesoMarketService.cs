@@ -46,7 +46,7 @@ public class MesoMarketService
     /// <summary>
     /// 특정 사용자의 요약 통계를 계산합니다.
     /// </summary>
-    public async Task<(double TotalBuyMeso, double TotalSellMeso, double AvgBuyPrice, double AvgSellPrice)> GetStatisticsAsync(string userId)
+    public async Task<(double TotalBuyPoint, double TotalSellPoint, double AvgBuyPrice, double AvgSellPrice, double TotalBuyMeso, double TotalSellMeso)> GetStatisticsAsync(string userId)
     {
         using var context = await _dbContextFactory.CreateDbContextAsync();
         var trades = await context.MesoMarketTrades
@@ -56,13 +56,16 @@ public class MesoMarketService
         var buyTrades = trades.Where(t => t.TradeType == "매수").ToList();
         var sellTrades = trades.Where(t => t.TradeType == "매도").ToList();
 
+        double totalBuyPoint = buyTrades.Sum(t => t.PointAmount);
+        double totalSellPoint = sellTrades.Sum(t => t.PointAmount);
+
         double totalBuyMeso = buyTrades.Sum(t => t.MesoAmount);
         double totalSellMeso = sellTrades.Sum(t => t.MesoAmount);
 
         double avgBuyPrice = buyTrades.Any() ? buyTrades.Average(t => t.UnitPrice) : 0;
         double avgSellPrice = sellTrades.Any() ? sellTrades.Average(t => t.UnitPrice) : 0;
 
-        return (totalBuyMeso, totalSellMeso, avgBuyPrice, avgSellPrice);
+        return (totalBuyPoint, totalSellPoint, avgBuyPrice, avgSellPrice, totalBuyMeso, totalSellMeso);
     }
 
     /// <summary>
