@@ -332,11 +332,13 @@
         _totalBuyMeso = stats.TotalBuyMeso;
         _totalSellMeso = stats.TotalSellMeso;
 
-        // Realized P/L = Revenue - Cost
-        if (_avgBuyPrice > 0 && _totalSellMeso > 0)
+        // 실현 손익 계산: (메소를 팔아서 실제로 번 포인트) - (그만큼의 메소를 당시에 샀을 때의 원가)
+        // 공식: _totalBuyPoint - (_totalBuyMeso * _avgSellPrice / 100,000,000.0)
+        if (_totalBuyMeso > 0 && _avgSellPrice > 0)
         {
-            _realizedPL = _totalBuyPoint - _totalSellPoint; // 단순 차액 (전체 획득 - 전체 지불)
-            _realizedPLRatio = _totalSellPoint > 0 ? (_realizedPL / _totalSellPoint) * 100 : 0;
+            _realizedPL = _totalBuyPoint - (_totalBuyMeso * _avgSellPrice / 100_000_000.0);
+            double costBasis = _totalBuyMeso * (_avgSellPrice / 100_000_000.0);
+            _realizedPLRatio = costBasis > 0 ? (_realizedPL / costBasis) * 100 : 0;
         }
         else
         {
