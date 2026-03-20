@@ -58,7 +58,7 @@ namespace MapleStoryMarketGraph.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AccountBookEntries");
+                    b.ToTable("AccountBookEntries", (string)null);
                 });
 
             modelBuilder.Entity("MapleStoryMarketGraph.Models.MesoMarketTrade", b =>
@@ -93,7 +93,7 @@ namespace MapleStoryMarketGraph.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("MesoMarketTrades");
+                    b.ToTable("MesoMarketTrades", (string)null);
                 });
 
             modelBuilder.Entity("MapleStoryMarketGraph.Models.User", b =>
@@ -141,7 +141,7 @@ namespace MapleStoryMarketGraph.Data.Migrations
                     b.HasIndex("GoogleSubjectId")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 #pragma warning restore 612, 618
         }

@@ -1,0 +1,104 @@
+========================================================
+[ 초보자를 위한 SQL & Entity Framework Core 완벽 가이드 ]
+========================================================
+
+이 문서는 데이터베이스 기초부터 .NET에서 가장 널리 쓰이는 데이터 관리 도구인 
+Entity Framework Core(EF Core)의 핵심 원리와 사용법을 상세히 정리한 문서입니다.
+
+--------------------------------------------------------
+1. 데이터베이스와 ORM의 이해
+--------------------------------------------------------
+
+■ SQL (Structured Query Language)
+   - 데이터베이스와 대화하기 위한 약속된 "언어"입니다. 
+   - 예: "SELECT * FROM Users;" (유저 테이블의 모든 데이터를 가져와라)
+
+■ ORM (Object-Relational Mapping / 객체-관계 매핑)
+   - 문제점: 프로그래밍 언어(C#)는 '객체' 중심이고, 데이터베이스는 '테이블' 중심이라 서로 대화가 어렵습니다.
+   - 해결책: ORM이 중간에서 C# 객체를 SQL 문으로, SQL 결과를 다시 C# 객체로 자동 변환해줍니다.
+   - EF Core는 .NET 진영의 대표적인 ORM입니다.
+
+--------------------------------------------------------
+2. EF Core의 핵심 구성 요소
+--------------------------------------------------------
+
+■ 모델 (Entity, 엔터티)
+   - 데이터베이스 테이블의 모습이 될 C# 클래스입니다.
+   - 예: 
+     public class MesoMarketTrade {
+         [Key] // 기본키(Primary Key) 설정
+         public int Id { get; set; }
+         [Required] // 반드시 값이 있어야 함 (NotNull)
+         public string UserId { get; set; }
+         public double MesoAmount { get; set; }
+     }
+
+■ DbContext (데이터베이스 컨텍스트)
+   - 데이터베이스 자체를 추상화한 클래스입니다.
+   - 여기 안에 선언된 DbSet<T>들이 모여 하나의 데이터베이스 설계도를 이룹니다.
+   - 통로 역할을 하며, 이 객체를 통해 데이터에 접근합니다.
+
+■ DbSet<T> (데이터베이스 세트)
+   - 특정 종류(T)의 데이터들이 모여있는 리포지토리입니다.
+   - SQL의 '테이블'에 대응됩니다.
+
+--------------------------------------------------------
+3. 테이블을 생성하는 4단계 워크플로우 (중요!)
+--------------------------------------------------------
+
+데이터베이스에 새로운 테이블을 만들고 싶다면 아래 과정을 따릅니다.
+
+① [코딩] 모델 클래스 작성
+   - Models 폴더에 새로운 .cs 파일을 만들고 저장할 데이터 항목들을 정의합니다.
+
+② [등록] DbContext에 추가
+   - ApplicationDbContext.cs 파일에 'public DbSet<모델이름> 테이블이름 { get; set; }' 한 줄을 추가합니다.
+
+③ [번역] 마이그레이션(Migration) 생성
+   - 터미널 명령어: `dotnet ef migrations add [설명문구]`
+   - EF Core가 "아, 코드가 이렇게 바뀌었으니 이런 SQL을 써야겠구나"라고 정리한 '설계 도면' 파일을 만듭니다. (Migrations 폴더에 생성됨)
+
+④ [반영] 데이터베이스 업데이트
+   - 터미널 명령어: `dotnet ef database update`
+   - 위에서 만든 도면을 바탕으로 실제 DB 파일(예: mesomarket.db)에 쿼리를 날려 구조를 바꿉니다.
+
+--------------------------------------------------------
+4. 실전! 데이터 다루기 (CRUD 비교)
+--------------------------------------------------------
+
+SQL은 명령어(String)를 직접 쓰지만, EF Core는 C# 메서드를 씁니다.
+
+■ 데이터 읽기 (Read)
+   - SQL: SELECT * FROM Trades WHERE UserId = 'Kim' ORDER BY Date DESC
+   - LINQ: _context.Trades.Where(t => t.UserId == "Kim").OrderByDescending(t => t.Date).ToList();
+
+■ 데이터 추가 (Create)
+   - SQL: INSERT INTO Trades (UserId, Amount) VALUES ('Kim', 100)
+   - EF Core: _context.Trades.Add(newTrade); await _context.SaveChangesAsync();
+
+■ 데이터 수정 (Update)
+   - SQL: UPDATE Trades SET Amount = 200 WHERE Id = 1
+   - EF Core: var trade = _context.Trades.Find(1); trade.Amount = 200; await _context.SaveChangesAsync();
+   - (참고: 객체의 값을 바꾸고 SaveChanges를 호출하면 EF Core가 바뀐 부분을 감지해 업데이트합니다.)
+
+■ 데이터 삭제 (Delete)
+   - SQL: DELETE FROM Trades WHERE Id = 1
+   - EF Core: _context.Trades.Remove(trade); await _context.SaveChangesAsync();
+
+--------------------------------------------------------
+5. 마이그레이션(Migration) 관리 팁
+--------------------------------------------------------
+
+- 마이그레이션 취소: 방금 만든 마이그레이션이 맘에 안 들면?
+  `dotnet ef migrations remove` (단, database update를 하기 전이어야 함)
+
+- DB 롤백: 실제 DB 반영까지 마쳤는데 이전 버전으로 되돌리고 싶다면?
+  `dotnet ef database update [이전 마이그레이션 이름]`
+
+- 설계도 확인: SQLite 내부가 정말 어떻게 변했는지 궁금하다면?
+  터미널에서 `sqlite3 mesomarket.db ".schema 테이블이름"` 실행
+
+--------------------------------------------------------
+이 문서를 읽으면 EF Core가 단순히 자동화 도구가 아니라, 
+"코드의 변경 사항을 데이터베이스의 역사와 동기화해주는 관리자"임을 이해하게 될 것입니다.
+--------------------------------------------------------
